@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_imports)]
 mod error;
 use error::*;
 mod token_type;
@@ -17,11 +18,12 @@ use std::fs::File;
 fn main() {
     let args:Vec<String> = args().collect();
     println!("args: {:?}, {}", args, args.len());
-    if args.len() > 1 {
-        println!("Usage: lox ast [Script]")
+    if args.len() > 2 {
+        println!("Usage: lox ast [Script]");
+       std::process::exit(64);
     } 
     else if args.len() == 2{
-        let _ = run_file(&args[0]);
+        let _ = run_file(&args[1]);
     } else {
        run_prompt()
     }
@@ -44,8 +46,7 @@ fn run_file(path:&String) -> io::Result<()> {
 fn run_prompt() {
     let stdin = io::stdin();
     print!("* ");
-    stdout().flush().unwrap()
-    ;
+    stdout().flush().unwrap();
     for line in stdin.lock().lines() {
         if let Ok(line) = line {
             if line.is_empty() {
@@ -53,13 +54,15 @@ fn run_prompt() {
             }
           match run(line.as_str()){
             Ok(_) => (),
-            Err(e) => {
-                e.report("".to_string());
+            Err(_) => {
+                // ingnore: error was already reported 
             }
           }
         } else {
             break;
         }
+         print!("* ");
+        stdout().flush().unwrap();
     }
 }
 

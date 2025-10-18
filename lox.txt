@@ -1,0 +1,11 @@
+// comment
+{} ()
++-/* ==  !=
+"string"
+! < >
+134
+12.4444
+22.6543455555
+ 1.2345
+ foo and 
+ true false super
