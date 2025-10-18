@@ -8,7 +8,7 @@ mod scanner;
 use scanner::*;
 
 use std::env::args;
-use std::io::{self, BufReader, BufRead, Read};
+use std::io::{self, BufReader, BufRead, Read, Write, stdout};
 use std::fs::File;
 
 
@@ -16,14 +16,14 @@ use std::fs::File;
 
 fn main() {
     let args:Vec<String> = args().collect();
-    println!("args: {:?}", args);
+    println!("args: {:?}, {}", args, args.len());
     if args.len() > 1 {
         println!("Usage: lox ast [Script]")
     } 
-    else if args.len() == 1{
-        run_file(&args[0]);
+    else if args.len() == 2{
+        let _ = run_file(&args[0]);
     } else {
-        run_prompt()
+       run_prompt()
     }
   
 }
@@ -40,9 +40,12 @@ fn run_file(path:&String) -> io::Result<()> {
     } 
     Ok(())
 }
+
 fn run_prompt() {
     let stdin = io::stdin();
     print!("* ");
+    stdout().flush().unwrap()
+    ;
     for line in stdin.lock().lines() {
         if let Ok(line) = line {
             if line.is_empty() {
@@ -64,7 +67,7 @@ fn run_prompt() {
 
 fn run(source: &str) -> Result<(), Loxerror>{
     let mut scanner = Scanner::new(source);
-    let tokens = scanner.scan_tokens();
+    let tokens = scanner.scan_tokens()?;
     for token in tokens {
         println!("{:?}", token);
     }

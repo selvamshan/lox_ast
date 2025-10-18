@@ -40,7 +40,7 @@ impl  Token {
     pub fn eof(line:usize) -> Self {
         Self {
             ttype: TokenType::Eof,
-            lexeme: "".to_string(),
+            lexeme: "EOF".to_string(),
             literal: None,
             line
         }
@@ -49,7 +49,7 @@ impl  Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {} {}", self.ttype, self.lexeme, match &self.literal {
+        write!(f, "{} {}", self.lexeme, match &self.literal {
             Some(lit) => format!("{}", lit),
             None => "none".to_string()
         }
