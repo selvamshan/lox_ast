@@ -1,6 +1,6 @@
 // comment
 {} ()
-+-/* ==  !=
++-/  ==  != *
 "string"
 ! < >
 134
@@ -9,3 +9,15 @@
  1.2345
  foo and 
  true false super
+ printfoo
+ /*  multline comment
+ line 1 
+ line 2 
+ lin3
+ */
+ print "multiline comment"
+/*  unterminated 
+/*   nest */
+line comment
+****/
+
