@@ -1,0 +1,1 @@
+D:\rust\lox_ast\ast-printer\target\debug\ast-printer.exe: D:\rust\lox_ast\ast-printer\src\error.rs D:\rust\lox_ast\ast-printer\src\expr.rs D:\rust\lox_ast\ast-printer\src\main.rs D:\rust\lox_ast\ast-printer\src\token.rs D:\rust\lox_ast\ast-printer\src\token_type.rs

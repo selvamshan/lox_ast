@@ -12,7 +12,7 @@ struct TreeType {
 pub fn gerenate_ast(output_dir: &str) -> io::Result<()> {
 
     define_ast(output_dir, "Expr", &[
-        "Literal     : value Object",
+        "Literal     : value Option<Object>",
         "Grouping    : expression Box<Expr>",
         "Unary       : operator Token, right Box<Expr>",
         "Binary      : left Box<Expr>, operator Token, right Box<Expr>"
@@ -47,6 +47,16 @@ fn define_ast(output_dir:&str, base_name:&str, types:&[&str]) -> io::Result<()> 
     for ttype in &tree_type {
         write!(file, "    {}({}),\n", ttype.base_class_name, ttype.class_name)?;
     }
+    write!(file, "}}\n\n")?;
+
+    write!(file, "impl {} {{\n", base_name)?;
+    write!(file, "    pub fn accept<T>(&self, visitor: &mut dyn ExprVisitor<T>) -> Result<T, LoxError> {{\n")?;
+    write!(file, "        match self {{\n")?;
+    for ttype in &tree_type {
+        write!(file, "            {}::{}(expr) => expr.accept(visitor),\n", base_name, ttype.base_class_name)?;
+    }
+    write!(file, "        }}\n")?;
+    write!(file, "    }}\n")?;
     write!(file, "}}\n\n")?;
 
     for ttype in &tree_type {
