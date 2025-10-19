@@ -7,6 +7,10 @@ mod token;
 use token::*;
 mod scanner;
 use scanner::*;
+mod expr_1;
+
+
+
 
 use std::env::args;
 use std::io::{self, BufReader, BufRead, Read, Write, stdout};
@@ -68,7 +72,7 @@ fn run_prompt() {
 
 
 
-fn run(source: &str) -> Result<(), Loxerror>{
+fn run(source: &str) -> Result<(), LoxError>{
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
     for token in tokens {

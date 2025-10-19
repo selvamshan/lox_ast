@@ -1,5 +1,5 @@
 use std::f32::consts;
-use crate::{error::Loxerror, token::*, token_type::TokenType};
+use crate::{error::LoxError, token::*, token_type::TokenType};
 
  
 
@@ -24,8 +24,8 @@ impl Scanner {
         }
     }
     
-    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>, Loxerror> {
-        let mut has_error :Option<Loxerror> = None;
+    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>, LoxError> {
+        let mut has_error :Option<LoxError> = None;
       
         while !self.is_at_end() {
             self.start = self.current;
@@ -75,7 +75,7 @@ impl Scanner {
         self.source.chars().nth(self.current).unwrap()
     }
 
-    fn scan_string(&mut self) -> Result<(), Loxerror> {
+    fn scan_string(&mut self) -> Result<(), LoxError> {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
                 self.line += 1;
@@ -85,7 +85,7 @@ impl Scanner {
 
         if self.is_at_end() {
             // Handle unterminated string error
-            return Err(Loxerror::error(self.line, "Unterminated string.".to_string()));
+            return Err(LoxError::error(self.line, "Unterminated string.".to_string()));
         }
 
         // The closing ".
@@ -110,7 +110,7 @@ impl Scanner {
         self.source.chars().nth(self.current + 1).unwrap()
     }
 
-    fn number(&mut self) -> Result<(), Loxerror> {
+    fn number(&mut self) -> Result<(), LoxError> {
         while self.is_digit(self.peek()) {
            self.advance();            
         }
@@ -131,7 +131,7 @@ impl Scanner {
             self.add_token(TokenType::Number, Some(Object::Num(number_value)));
             Ok(())
         } else {
-            return Err(Loxerror::error(self.line, "Invalid number.".to_string()));
+            return Err(LoxError::error(self.line, "Invalid number.".to_string()));
         }
         //let number_value: f64 = value.parse().unwrap();
         
@@ -181,7 +181,7 @@ impl Scanner {
         }
         
     }
-    fn scan_comment(&mut self) -> Result<(), Loxerror> {        
+    fn scan_comment(&mut self) -> Result<(), LoxError> {        
         loop {
             match self.peek() {               
                 '*' => {
@@ -208,7 +208,7 @@ impl Scanner {
                     self.advance();
                 }
                 '\0' => {
-                    return Err(Loxerror::error(self.line, "Unterminated comment".to_string()));
+                    return Err(LoxError::error(self.line, "Unterminated comment".to_string()));
                 }// End of source
                 _ => {
                     self.advance();
@@ -218,7 +218,7 @@ impl Scanner {
        
     }
 
-    fn scan_token(&mut self) -> Result<(), Loxerror> {
+    fn scan_token(&mut self) -> Result<(), LoxError> {
         // Placeholder for scanning a single token
         let c = self.advance();
         match c {
@@ -286,7 +286,7 @@ impl Scanner {
                 // if self.is_digit(c) {
                 //   self.number()?;
                 // } else {
-                //     return Err(Loxerror::error(self.line, "Invalid number.".to_string()));
+                //     return Err(LoxError::error(self.line, "Invalid number.".to_string()));
                 // }
                 //  Ok(())
                 match self.number(){
@@ -300,7 +300,7 @@ impl Scanner {
                     self.identifier();
                     return Ok(());
                 }
-                return Err(Loxerror::error(self.line, "Unexpected character.".to_string()));
+                return Err(LoxError::error(self.line, "Unexpected character.".to_string()));
             }
         }
          
