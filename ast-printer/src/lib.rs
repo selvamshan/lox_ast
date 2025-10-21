@@ -54,7 +54,7 @@ impl ExprVisitor<String> for AstPrinter {
     }
 }
 
-fn main() {
+fn check_print() {
     let expression = Expr::Binary( BinaryExpr {
         left: Box::new( Expr::Unary( UnaryExpr {
             operator: Token::new(TokenType::Minus, "-".to_string(), None, 1),

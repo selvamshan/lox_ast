@@ -7,6 +7,9 @@ mod token;
 use token::*;
 mod scanner;
 use scanner::*;
+mod parser;
+use parser::*;
+mod expr;
 
 
 use std::env::args;

@@ -24,12 +24,12 @@ impl fmt::Display for Object {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
-    ttype: TokenType,
+    pub ttype: TokenType,
     pub lexeme: String,
-    literal: Option<Object>,
-    line: usize   
+    pub literal: Option<Object>,
+    pub line: usize   
 }
 
 impl  Token {
