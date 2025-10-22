@@ -52,21 +52,58 @@ impl ExprVisitor<Object> for Interpreter {
     fn visit_binary_expr(&mut self, expr: &BinaryExpr) -> Result<Object, LoxError> {
         let left = self.evaluate(&expr.left)?;//expr.left.accept(self)?;
         let right = self.evaluate(&expr.right)?;
-        let result = match expr.operator.token_type() {
-            TokenType::Plus => left + right,  
-            TokenType::Minus => left - right,
-            TokenType::Star => left * right,    
-            TokenType::Slash => left / right,
-            TokenType::Greater => Object::Bool(left > right),
-            TokenType::GreaterEqual => Object::Bool(left >= right),
-            TokenType::Less =>  Object::Bool(left < right),
-            TokenType::LessEqual => Object::Bool(left <= right),
-            TokenType::EqualEqual => Object::Bool(left == right),
-            TokenType::BangEqual => Object::Bool(left != right),
-            _ => return Err(LoxError::error(expr.operator.line, "Unknown binary operator." )),
+        let op = expr.operator.token_type();
+        
+        let result = match(left, right) {
+            (Object::Num(l), Object::Num(r)) => {
+                match op {
+                    TokenType::Plus => Object::Num(l + r),  
+                    TokenType::Minus => Object::Num(l - r),
+                    TokenType::Star => Object::Num(l * r),    
+                    TokenType::Slash => Object::Num(l / r),
+                    TokenType::Greater => Object::Bool(l > r),
+                    TokenType::GreaterEqual => Object::Bool(l >= r),
+                    TokenType::Less =>  Object::Bool(l < r),
+                    TokenType::LessEqual => Object::Bool(l <= r),
+                    TokenType::EqualEqual => Object::Bool(l == r),
+                    TokenType::BangEqual => Object::Bool(l != r),
+                    _ => return Err(LoxError::error(expr.operator.line, "Unknown binary operator." )),
+                }
+            },
+            (Object::Str(l), Object::Str(r)) => {
+                match op {
+                    TokenType::Plus => Object::Str(format!("{}{}", l, r)),
+                    TokenType::EqualEqual => Object::Bool(l == r),
+                    TokenType::BangEqual => Object::Bool(l != r),
+                    _ => Object::ArithmeticError
+                }
+            },
+            (Object::Bool(l), Object::Bool(r)) => {
+                match op {
+                    TokenType::EqualEqual => Object::Bool(l == r),
+                    TokenType::BangEqual => Object::Bool(l != r),
+                    _ => Object::ArithmeticError
+                }
+            },
+            (Object::Nil, Object::Nil) => {
+                match op {
+                    TokenType::EqualEqual => Object::Bool(true),
+                    TokenType::BangEqual => Object::Bool(false),
+                    _ => Object::ArithmeticError
+                }
+            },
+            (Object::Nil, _) => {
+                match op {
+                    TokenType::EqualEqual => Object::Bool(false),
+                    TokenType::BangEqual => Object::Bool(true),
+                    _ => Object::ArithmeticError
+                }
+            },
+            _ => return Err(LoxError::runtime_error(&expr.operator, "Operands must be two numbers or two strings.")),
         };
+        
         if result == Object::ArithmeticError {
-            Err(LoxError::error(expr.operator.line, "Operands must be numbers."))
+            Err(LoxError::runtime_error(&expr.operator, "Operands must be numbers."))
         } else {
             Ok(result)
         }
