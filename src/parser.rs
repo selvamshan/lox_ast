@@ -1,22 +1,29 @@
 use crate::token_type::*;
+use crate::object::*;
 use crate::token::*;
 use crate::error::*;
 use crate::expr::*;
          
-pub struct Parser {
-    tokens: Vec<Token>,
+pub struct Parser<'a> {
+     pub
+    tokens: &'a Vec<Token>,
     current: usize,
 }
 
-impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Self {
+impl<'a> Parser<'a> {
+    pub fn new(tokens: &'a Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
 
-    
+    pub fn parse(&mut self) -> Option<Expr> {
+        match self.expression() {
+            Ok(expr) => Some(expr),
+            Err(_) => None
+        }
+    }
 
     fn is_at_end(&self) -> bool {
-        self.peek().ttype == TokenType::Eof
+        self.peek().is(&TokenType::Eof)
     }
 
     fn peek(&self) -> &Token {
@@ -39,7 +46,7 @@ impl Parser {
         if self.is_at_end() {
             return false;
         }
-        &self.peek().ttype == ttype
+        &self.peek().token_type() == ttype
     } 
 
     fn match_tokens(&mut self, types: &[TokenType]) -> bool {
@@ -60,7 +67,7 @@ impl Parser {
         let mut expr = self.comparison()?;
 
         while self.match_tokens(&[TokenType::BangEqual, TokenType::EqualEqual]) {
-            let operator = self.previous().clone();
+            let operator = self.previous().dup();
             let right = self.comparison()?;
             expr = Expr::Binary( BinaryExpr {
                 left: Box::new(expr),
@@ -160,28 +167,7 @@ impl Parser {
             return Ok(Expr::Grouping( GroupingExpr { expression: Box::new(expr) }));
         }
 
-        // if self.match_tokens(&[TokenType::Number]) {
-        //     let value = match &self.previous().literal {
-        //         Some(Object::Num(n)) => *n,
-        //         _ => return Err(LoxError::error(self.previous().line, "Expected number literal.".to_string())),
-        //     };
-        //     return Ok(Expr::Literal( LiteralExpr { value: Some(Object::Num(value)) }));
-        // }
-        // if self.match_tokens(&[TokenType::String]) {
-        //     let value = match &self.previous().literal {
-        //         Some(Object::Str(s)) => s.clone(),
-        //         _ => return Err(LoxError::error(self.previous().line, "Expected string literal.".to_string())),
-        //     };
-        //     return Ok(Expr::Literal( LiteralExpr { value: Some(Object::Str(value)) }));
-        // }
-        // if self.match_tokens(&[TokenType::LeftParen]) {
-        //     let expr = self.expression()?;
-        //     if !self.match_tokens(&[TokenType::RightParen]) {
-        //         return Err(LoxError::error(self.peek().line, "Expected ')' after expression.".to_string()));
-        //     }
-        //     return Ok(Expr::Grouping( GroupingExpr { expression: Box::new(expr) }));
-        // }
-
+        
         Err(LoxError::error(self.peek().line, "Expected expression.".to_string()))
     }
 
@@ -190,11 +176,38 @@ impl Parser {
             return Ok(self.advance());
         }
 
-        Err(LoxError::error(self.peek().line, message.to_string()))
+        //Err(LoxError::error(self.peek().line, message.to_string()))
+        Err(Parser::error(self.peek(), message))
+    }
+
+    fn synchronize(&mut self) {
+        self.advance();
+
+        while !self.is_at_end() {
+            if self.previous().is(&TokenType::Semicolon) {
+                return;
+            }
+
+            match self.peek().token_type() {
+                TokenType::Class |
+                TokenType::Fun |
+                TokenType::Var |
+                TokenType::For |
+                TokenType::If |
+                TokenType::While |
+                TokenType::Print |
+                TokenType::Return => return,
+                _ => {}
+            }
+
+            self.advance();
+        }
     }
 
         
-    
+    fn error(token: &Token, message: &str) -> LoxError {
+        LoxError::parse_error(token, message.to_string())
+    }
 
     
 }

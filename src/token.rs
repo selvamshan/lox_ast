@@ -1,28 +1,10 @@
 use core::fmt;
 
+use crate::object::Object;
 use crate::token_type::TokenType;
 
 
-#[derive(Debug, Clone)]
-pub enum Object {
-    Num(f64),
-    Str(String),
-    Nil,
-    True,
-    False,
-}
 
-impl fmt::Display for Object {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Object::Num(n) => write!(f, "{}", n),
-            Object::Str(s) => write!(f, "{}", s),
-            Object::Nil => write!(f, "nil"),
-            Object::True => write!(f, "true"),
-            Object::False => write!(f, "false"),
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Token {
@@ -35,6 +17,30 @@ pub struct Token {
 impl  Token {
     pub fn new(ttype: TokenType, lexeme: String, literal: Option<Object>, line:usize) -> Self {
         Self { ttype, lexeme, literal, line }
+    }
+
+    pub fn is(&self, ttype: &TokenType) -> bool {
+        &self.ttype == ttype
+    }
+
+    pub fn token_type(&self) -> TokenType {
+        self.ttype.clone()
+    }
+
+    pub fn as_str(&self) -> String {
+        match &self.literal {
+            Some(Object::Str(s)) => s.clone(),
+            _ => "".to_string()
+        }
+    }
+
+    pub fn dup(&self) -> Self {
+        Self {
+            ttype: self.ttype.clone(),
+            lexeme: self.lexeme.clone(),
+            literal: self.literal.clone(),
+            line: self.line
+        }
     }
 
     pub fn eof(line:usize) -> Self {

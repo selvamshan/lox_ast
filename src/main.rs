@@ -3,6 +3,7 @@ mod error;
 use error::*;
 mod token_type;
 use token_type::*;
+mod object;
 mod token;
 use token::*;
 mod scanner;
@@ -10,6 +11,9 @@ use scanner::*;
 mod parser;
 use parser::*;
 mod expr;
+mod interpreter;
+mod ast_printer;
+use ast_printer::AstPrinter;
 
 
 use std::env::args;
@@ -75,9 +79,21 @@ fn run_prompt() {
 fn run(source: &str) -> Result<(), LoxError>{
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
-    for token in tokens {
-        println!("{:?}", token);
+    // for token in tokens {
+    //     println!("{:?}", token);
+    // }
+    let mut parser = Parser::new(tokens);
+    match parser.parse(){
+        Some(expr) => {
+            let mut printer = AstPrinter;
+            let result = printer.print(&expr)?;
+            println!("{}", result);
+        },
+        None => {
+            // parse error was already reported
+        }
     }
+    
     Ok(())
 }
 

@@ -1,4 +1,5 @@
 use std::f32::consts;
+use crate::object::Object;
 use crate::{error::LoxError, token::*, token_type::TokenType};
 
  
