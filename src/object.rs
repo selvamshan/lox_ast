@@ -25,6 +25,26 @@ impl fmt::Display for Object {
     }
 }
 
+impl Object {
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Object::Bool(b) => *b,
+            Object::Nil => false,
+            _ => true,
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            Object::Num(n) => n.to_string(),
+            Object::Str(s) => s.clone(),
+            Object::Nil => "nil".to_string(),
+            Object::Bool(b) => b.to_string(),
+            Object::ArithmeticError => "ArithmeticError".to_string(),
+        }
+    }
+}
+
 impl Sub for Object {
     type Output = Self;
 

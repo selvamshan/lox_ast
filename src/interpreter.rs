@@ -1,15 +1,23 @@
 use crate::expr::*;
 use crate::object::*;
 use crate::error::*;
+use crate::stmt::*;
 use crate::token::Token;
 use crate::token_type::*;
 
 pub struct Interpreter {}
 
+
+
 impl Interpreter {
    fn evaluate(&mut self, expr: &Expr) -> Result<Object, LoxError> {
        expr.accept(self)
    }
+ 
+   fn exceute(&mut self, stmt: &Stmt) -> Result<(), LoxError> {
+        stmt.accept(self)
+   }
+
    fn is_truthy(&self, obj: &Object) -> bool {
        match obj {
            Object::Nil => false,
@@ -17,6 +25,31 @@ impl Interpreter {
            _ => true,
        }
    }
+   pub fn interpret(&mut self, statements: &[Stmt]) -> bool {
+        let mut had_error = true;
+        for statement in statements{
+            if let Err(_e) = self.exceute(statement) {
+                had_error = false;
+                break
+            }
+        }
+        had_error
+      
+   }
+}
+
+impl StmtVisitor<()> for Interpreter {
+    fn visit_expression_stmt(&mut self, stmt: &ExpressionStmt) -> Result<(), LoxError> {
+        self.evaluate(&stmt.expression)?;
+        Ok(())
+    }
+
+    fn visit_print_stmt(&mut self, stmt: &PrintStmt) -> Result<(), LoxError> {
+        let value = self.evaluate(&stmt.expression)?;
+        println!("{value}");
+        Ok(())
+    }
+
 }
 
 impl ExprVisitor<Object> for Interpreter {
@@ -68,6 +101,18 @@ impl ExprVisitor<Object> for Interpreter {
                     TokenType::EqualEqual => Object::Bool(l == r),
                     TokenType::BangEqual => Object::Bool(l != r),
                     _ => return Err(LoxError::error(expr.operator.line, "Unknown binary operator." )),
+                }
+            },
+            (Object::Num(l), Object::Str(r)) => {
+                match op {
+                    TokenType::Plus => Object::Str(format!("{}{}", l, r)),
+                    _ => Object::ArithmeticError
+                }
+            },
+            (Object::Str(l), Object::Num(r)) => {
+                match op {
+                    TokenType::Plus => Object::Str(format!("{}{}", l, r)),
+                    _ => Object::ArithmeticError
                 }
             },
             (Object::Str(l), Object::Str(r)) => {

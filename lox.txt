@@ -1,23 +1,5 @@
-// comment
-{} ()
-+-/  ==  != *
-"string"
-! < >
-134
-12.4444
-22.6543455555
- 1.2345
- foo and 
- true false super
- printfoo
- /*  multline comment
- line 1 
- line 2 
- lin3
- */
- print "multiline comment"
-/*  unterminated 
-/*   nest */
-line comment
-****/
-
+print "one";
+print true;
+print 2 + 1;
+print "4 > 5";
+print 4 > 5;
