@@ -148,10 +148,10 @@ impl<'a> Parser<'a> {
 
     fn primary(&mut self) -> Result<Expr, LoxError> {
         if self.match_tokens(&[TokenType::False]) {
-            return Ok(Expr::Literal( LiteralExpr { value: Some(Object::False) }));
+            return Ok(Expr::Literal( LiteralExpr { value: Some(Object::Bool(false)) }));
         }
         if self.match_tokens(&[TokenType::True]) {
-            return Ok(Expr::Literal( LiteralExpr { value: Some(Object::True) }));
+            return Ok(Expr::Literal( LiteralExpr { value: Some(Object::Bool(true)) }));
         }
         if self.match_tokens(&[TokenType::Nil]) {
             return Ok(Expr::Literal( LiteralExpr { value: Some(Object::Nil) }));
@@ -168,7 +168,7 @@ impl<'a> Parser<'a> {
         }
 
         
-        Err(LoxError::error(self.peek().line, "Expected expression.".to_string()))
+        Err(LoxError::error(self.peek().line, "Expected expression."))
     }
 
     fn consume(&mut self, ttype: TokenType, message: &str) -> Result<&Token, LoxError> {
@@ -206,7 +206,7 @@ impl<'a> Parser<'a> {
 
         
     fn error(token: &Token, message: &str) -> LoxError {
-        LoxError::parse_error(token, message.to_string())
+        LoxError::parse_error(token, message)
     }
 
     

@@ -9,19 +9,19 @@ pub struct LoxError {
 }
 
 impl LoxError {
-    pub fn error(line:usize, message:String) -> LoxError {
-        let err = LoxError {token:None, line, message };
-        err.report("".to_string());
+    pub fn error(line:usize, message:&str) -> LoxError {
+        let err = LoxError {token:None, line, message:message.to_string() };
+        err.report("");
         err
     }
 
-    pub fn parse_error(token: &Token, message:String) -> LoxError {
-        let err = LoxError { token:Some(token.dup()), line: token.line, message };
-        err.report("".to_string());
+    pub fn parse_error(token: &Token, message:&str) -> LoxError {
+        let err = LoxError { token:Some(token.dup()), line: token.line, message: message.to_string() };
+        err.report("");
         err
     }
 
-    pub fn report(&self, loc:String) {
+    pub fn report(&self, loc:&str) {
         if let Some(token) = &self.token {
             if token.is(&TokenType::Eof) {
                 eprintln!("[line {}] Error at end {}: {}", self.line, loc, self.message);
