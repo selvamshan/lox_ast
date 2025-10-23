@@ -1,7 +1,7 @@
 use crate::environment::*;
+use crate::error::*;
 use crate::expr::*;
 use crate::object::*;
-use crate::error::*;
 use crate::stmt::*;
 use crate::token::Token;
 use crate::token_type::*;
@@ -9,40 +9,38 @@ use crate::token_type::*;
 use std::cell::RefCell;
 
 pub struct Interpreter {
-    environment: RefCell<Environment>
+    environment: RefCell<Environment>,
 }
 
-
-
 impl Interpreter {
-   pub fn new() -> Self {
-      Self {environment: RefCell::new(Environment::new())
+    pub fn new() -> Self {
+        Self {
+            environment: RefCell::new(Environment::new()),
+        }
     }
-   }
 
-   fn evaluate(&mut self, expr: &Expr) -> Result<Object, LoxError> {
-       expr.accept(self)
-   }
- 
-   fn exceute(&mut self, stmt: &Stmt) -> Result<(), LoxError> {
+    fn evaluate(&mut self, expr: &Expr) -> Result<Object, LoxError> {
+        expr.accept(self)
+    }
+
+    fn exceute(&mut self, stmt: &Stmt) -> Result<(), LoxError> {
         stmt.accept(self)
-   }
+    }
 
-   fn is_truthy(&self, obj: &Object) -> bool {
-      !matches!(obj, Object::Nil | Object::Bool(false))    
-   }
+    fn is_truthy(&self, obj: &Object) -> bool {
+        !matches!(obj, Object::Nil | Object::Bool(false))
+    }
 
-   pub fn interpret(&mut self, statements: &[Stmt]) -> bool {
+    pub fn interpret(&mut self, statements: &[Stmt]) -> bool {
         let mut had_error = true;
-        for statement in statements{
+        for statement in statements {
             if let Err(_e) = self.exceute(statement) {
                 had_error = false;
-                break
+                break;
             }
         }
         had_error
-      
-   }
+    }
 }
 
 impl StmtVisitor<()> for Interpreter {
@@ -59,20 +57,19 @@ impl StmtVisitor<()> for Interpreter {
 
     fn visit_var_stmt(&mut self, stmt: &VarStmt) -> Result<(), LoxError> {
         let value = if let Some(initializer) = &stmt.initializer {
-            self.evaluate(&initializer)?
+            self.evaluate(initializer)?
         } else {
             Object::Nil
         };
 
-        self.environment.borrow_mut().define(&stmt.name.as_string(), value);
+        self.environment
+            .borrow_mut()
+            .define(&stmt.name.as_string(), value);
         Ok(())
-        
     }
-
 }
 
 impl ExprVisitor<Object> for Interpreter {
-
     fn visit_literal_expr(&mut self, expr: &LiteralExpr) -> Result<Object, LoxError> {
         match &expr.value {
             Some(val) => Ok(val.clone()),
@@ -95,126 +92,146 @@ impl ExprVisitor<Object> for Interpreter {
                 } else {
                     Ok(Object::Nil)
                 }
-            },
+            }
             TokenType::Bang => Ok(Object::Bool(!self.is_truthy(&right))),
-        
+
             _ => Err(LoxError::error(expr.operator.line, "Unreachable code.")),
         }
     }
 
     fn visit_binary_expr(&mut self, expr: &BinaryExpr) -> Result<Object, LoxError> {
-        let left = self.evaluate(&expr.left)?;//expr.left.accept(self)?;
+        let left = self.evaluate(&expr.left)?; //expr.left.accept(self)?;
         let right = self.evaluate(&expr.right)?;
         let op = expr.operator.token_type();
-        
-        let result = match(left, right) {
-            (Object::Num(l), Object::Num(r)) => {
-                match op {
-                    TokenType::Plus => Object::Num(l + r),  
-                    TokenType::Minus => Object::Num(l - r),
-                    TokenType::Star => Object::Num(l * r),    
-                    TokenType::Slash => Object::Num(l / r),
-                    TokenType::Greater => Object::Bool(l > r),
-                    TokenType::GreaterEqual => Object::Bool(l >= r),
-                    TokenType::Less =>  Object::Bool(l < r),
-                    TokenType::LessEqual => Object::Bool(l <= r),
-                    TokenType::EqualEqual => Object::Bool(l == r),
-                    TokenType::BangEqual => Object::Bool(l != r),
-                    _ => return Err(LoxError::error(expr.operator.line, "Unknown binary operator." )),
+
+        let result = match (left, right) {
+            (Object::Num(l), Object::Num(r)) => match op {
+                TokenType::Plus => Object::Num(l + r),
+                TokenType::Minus => Object::Num(l - r),
+                TokenType::Star => Object::Num(l * r),
+                TokenType::Slash => Object::Num(l / r),
+                TokenType::Greater => Object::Bool(l > r),
+                TokenType::GreaterEqual => Object::Bool(l >= r),
+                TokenType::Less => Object::Bool(l < r),
+                TokenType::LessEqual => Object::Bool(l <= r),
+                TokenType::Equal => Object::Bool(l == r),
+                TokenType::BangEqual => Object::Bool(l != r),
+                _ => {
+                    return Err(LoxError::error(
+                        expr.operator.line,
+                        "Unknown binary operator.",
+                    ));
                 }
             },
-            (Object::Num(l), Object::Str(r)) => {
-                match op {
-                    TokenType::Plus => Object::Str(format!("{}{}", l, r)),
-                    _ => Object::ArithmeticError
-                }
+            (Object::Num(l), Object::Str(r)) => match op {
+                TokenType::Plus => Object::Str(format!("{}{}", l, r)),
+                _ => Object::ArithmeticError,
             },
-            (Object::Str(l), Object::Num(r)) => {
-                match op {
-                    TokenType::Plus => Object::Str(format!("{}{}", l, r)),
-                    _ => Object::ArithmeticError
-                }
+            (Object::Str(l), Object::Num(r)) => match op {
+                TokenType::Plus => Object::Str(format!("{}{}", l, r)),
+                _ => Object::ArithmeticError,
             },
-            (Object::Str(l), Object::Str(r)) => {
-                match op {
-                    TokenType::Plus => Object::Str(format!("{}{}", l, r)),
-                    TokenType::EqualEqual => Object::Bool(l == r),
-                    TokenType::BangEqual => Object::Bool(l != r),
-                    _ => Object::ArithmeticError
-                }
+            (Object::Str(l), Object::Str(r)) => match op {
+                TokenType::Plus => Object::Str(format!("{}{}", l, r)),
+                TokenType::Equal => Object::Bool(l == r),
+                TokenType::BangEqual => Object::Bool(l != r),
+                _ => Object::ArithmeticError,
             },
-            (Object::Bool(l), Object::Bool(r)) => {
-                match op {
-                    TokenType::EqualEqual => Object::Bool(l == r),
-                    TokenType::BangEqual => Object::Bool(l != r),
-                    _ => Object::ArithmeticError
-                }
+            (Object::Bool(l), Object::Bool(r)) => match op {
+                TokenType::Equal => Object::Bool(l == r),
+                TokenType::BangEqual => Object::Bool(l != r),
+                _ => Object::ArithmeticError,
             },
-            (Object::Nil, Object::Nil) => {
-                match op {
-                    TokenType::EqualEqual => Object::Bool(true),
-                    TokenType::BangEqual => Object::Bool(false),
-                    _ => Object::ArithmeticError
-                }
+            (Object::Nil, Object::Nil) => match op {
+                TokenType::Equal => Object::Bool(true),
+                TokenType::BangEqual => Object::Bool(false),
+                _ => Object::ArithmeticError,
             },
-            (Object::Nil, _) => {
-                match op {
-                    TokenType::EqualEqual => Object::Bool(false),
-                    TokenType::BangEqual => Object::Bool(true),
-                    _ => Object::ArithmeticError
-                }
+            (Object::Nil, _) => match op {
+                TokenType::Equal => Object::Bool(false),
+                TokenType::BangEqual => Object::Bool(true),
+                _ => Object::ArithmeticError,
             },
-            _ => return Err(LoxError::runtime_error(&expr.operator, "Operands must be two numbers or two strings.")),
+            _ => {
+                return Err(LoxError::runtime_error(
+                    &expr.operator,
+                    "Operands must be two numbers or two strings.",
+                ));
+            }
         };
-        
+
         if result == Object::ArithmeticError {
-            Err(LoxError::runtime_error(&expr.operator, "Operands must be numbers."))
+            Err(LoxError::runtime_error(
+                &expr.operator,
+                "Operands must be numbers.",
+            ))
         } else {
             Ok(result)
         }
-        
-        
     }
 
-   fn visit_variable_expr(&mut self, expr: &VariableExpr) -> Result<Object, LoxError> {
-       self.environment.borrow().get(&expr.name)
-       
-   }
-}   
+    fn visit_variable_expr(&mut self, expr: &VariableExpr) -> Result<Object, LoxError> {
+        self.environment.borrow().get(&expr.name)
+    }
+
+    fn visit_assign_expr(&mut self, expr: &AssignExpr) -> Result<Object, LoxError> {
+        let value = self.evaluate(&expr.value)?;
+        self.environment
+            .borrow_mut()
+            .assign(&expr.name, value.clone())?;
+        Ok(value)
+    }
+}
 
 #[cfg(test)]
 #[allow(unused_variables)]
 mod tests {
     use super::*;
     use crate::token::*;
-    
-    fn make_literal_str(value:&str) -> Box<Expr> {
-       Box::new(Expr::Literal( LiteralExpr { value: Some(Object::Str(value.to_string())) }))       
+
+    fn make_literal_str(value: &str) -> Box<Expr> {
+        Box::new(Expr::Literal(LiteralExpr {
+            value: Some(Object::Str(value.to_string())),
+        }))
     }
 
-    fn make_literal_num(value:f64) -> Box<Expr> {
-       Box::new(Expr::Literal( LiteralExpr { value: Some(Object::Num(value)) }))       
+    fn make_literal_num(value: f64) -> Box<Expr> {
+        Box::new(Expr::Literal(LiteralExpr {
+            value: Some(Object::Num(value)),
+        }))
     }
 
     #[test]
     fn test_interpreter_literal() {
         let mut interpreter = Interpreter::new();
-        let expr = LiteralExpr { value: Some(Object::Num(42.0)) } ;
+        let expr = LiteralExpr {
+            value: Some(Object::Num(42.0)),
+        };
         let result = interpreter.visit_literal_expr(&expr).unwrap();
         assert_eq!(result, Object::Num(42.0));
     }
     #[test]
     fn test_interpreter_grouping() {
         let mut interpreter = Interpreter::new();
-        let expr = GroupingExpr { expression:  make_literal_num(3.14) } ;
+        let expr = GroupingExpr {
+            expression: make_literal_num(3.14),
+        };
         let result = interpreter.visit_grouping_expr(&expr).unwrap();
         assert_eq!(result, Object::Num(3.14));
     }
 
     #[test]
     fn test_uninary_minus() {
-        let mut interpreter =Interpreter::new();
-        let expr =  UnaryExpr { operator: Token { ttype: TokenType::Minus, lexeme: "-".to_string(), line: 1, literal: None }, right: make_literal_num(5.0) } ;
+        let mut interpreter = Interpreter::new();
+        let expr = UnaryExpr {
+            operator: Token {
+                ttype: TokenType::Minus,
+                lexeme: "-".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_num(5.0),
+        };
         let result = interpreter.visit_unary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Num(-5.0)));
@@ -223,7 +240,17 @@ mod tests {
     #[test]
     fn test_uniary_not() {
         let mut interpreter = Interpreter::new();
-        let expr =  UnaryExpr { operator: Token { ttype: TokenType::Bang, lexeme: "!".to_string(), line: 1, literal: None }, right: Box::new(Expr::Literal( LiteralExpr { value: Some(Object::Bool(false)) })) } ;
+        let expr = UnaryExpr {
+            operator: Token {
+                ttype: TokenType::Bang,
+                lexeme: "!".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: Box::new(Expr::Literal(LiteralExpr {
+                value: Some(Object::Bool(false)),
+            })),
+        };
         let result = interpreter.visit_unary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Bool(true)));
@@ -232,11 +259,20 @@ mod tests {
     #[test]
     fn test_binary_plus() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: Box::new(Expr::Literal( LiteralExpr { value: Some(Object::Num(10.0)) })), 
-            operator: Token { ttype: TokenType::Plus, lexeme: "+".to_string(), line: 1, literal: None }, 
-            right: Box::new(Expr::Literal( LiteralExpr { value: Some(Object::Num(15.0)) })) 
-        } ;
+        let expr = BinaryExpr {
+            left: Box::new(Expr::Literal(LiteralExpr {
+                value: Some(Object::Num(10.0)),
+            })),
+            operator: Token {
+                ttype: TokenType::Plus,
+                lexeme: "+".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: Box::new(Expr::Literal(LiteralExpr {
+                value: Some(Object::Num(15.0)),
+            })),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Num(25.0)));
@@ -245,11 +281,20 @@ mod tests {
     #[test]
     fn test_binary_plus_type_error() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: Box::new(Expr::Literal( LiteralExpr { value: Some(Object::Num(10.0)) })), 
-            operator: Token { ttype: TokenType::Plus, lexeme: "+".to_string(), line: 1, literal: None }, 
-            right: Box::new(Expr::Literal( LiteralExpr { value: Some(Object::Bool(true)) })) 
-        } ;
+        let expr = BinaryExpr {
+            left: Box::new(Expr::Literal(LiteralExpr {
+                value: Some(Object::Num(10.0)),
+            })),
+            operator: Token {
+                ttype: TokenType::Plus,
+                lexeme: "+".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: Box::new(Expr::Literal(LiteralExpr {
+                value: Some(Object::Bool(true)),
+            })),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_err());
     }
@@ -257,11 +302,20 @@ mod tests {
     #[test]
     fn test_binary_minus() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: Box::new(Expr::Literal( LiteralExpr { value: Some(Object::Num(20.0)) })), 
-            operator: Token { ttype: TokenType::Minus, lexeme: "-".to_string(), line: 1, literal: None }, 
-            right: Box::new(Expr::Literal( LiteralExpr { value: Some(Object::Num(5.0)) })) 
-        } ;
+        let expr = BinaryExpr {
+            left: Box::new(Expr::Literal(LiteralExpr {
+                value: Some(Object::Num(20.0)),
+            })),
+            operator: Token {
+                ttype: TokenType::Minus,
+                lexeme: "-".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: Box::new(Expr::Literal(LiteralExpr {
+                value: Some(Object::Num(5.0)),
+            })),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Num(15.0)));
@@ -270,11 +324,20 @@ mod tests {
     #[test]
     fn test_binary_minus_type_error() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: Box::new(Expr::Literal( LiteralExpr { value: Some(Object::Num(10.0)) })), 
-            operator: Token { ttype: TokenType::Minus, lexeme: "-".to_string(), line: 1, literal: None }, 
-            right: Box::new(Expr::Literal( LiteralExpr { value: Some(Object::Bool(true)) })) 
-        } ;
+        let expr = BinaryExpr {
+            left: Box::new(Expr::Literal(LiteralExpr {
+                value: Some(Object::Num(10.0)),
+            })),
+            operator: Token {
+                ttype: TokenType::Minus,
+                lexeme: "-".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: Box::new(Expr::Literal(LiteralExpr {
+                value: Some(Object::Bool(true)),
+            })),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_err());
     }
@@ -282,11 +345,16 @@ mod tests {
     #[test]
     fn test_binary_star() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: make_literal_num(4.0), 
-            operator: Token { ttype: TokenType::Star, lexeme: "*".to_string(), line: 1, literal: None }, 
-            right: make_literal_num(2.5)
-        } ;
+        let expr = BinaryExpr {
+            left: make_literal_num(4.0),
+            operator: Token {
+                ttype: TokenType::Star,
+                lexeme: "*".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_num(2.5),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Num(10.0)));
@@ -295,11 +363,16 @@ mod tests {
     #[test]
     fn test_binary_slash() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: make_literal_num(10.0), 
-            operator: Token { ttype: TokenType::Slash, lexeme: "/".to_string(), line: 1, literal: None }, 
-            right: make_literal_num(2.0)
-        } ;
+        let expr = BinaryExpr {
+            left: make_literal_num(10.0),
+            operator: Token {
+                ttype: TokenType::Slash,
+                lexeme: "/".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_num(2.0),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Num(5.0)));
@@ -308,11 +381,16 @@ mod tests {
     #[test]
     fn test_binary_wrong_operator() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: make_literal_num(10.0), 
-            operator: Token { ttype: TokenType::Bang, lexeme: "!".to_string(), line: 1, literal: None }, 
-            right: make_literal_num(2.0)
-        } ;
+        let expr = BinaryExpr {
+            left: make_literal_num(10.0),
+            operator: Token {
+                ttype: TokenType::Bang,
+                lexeme: "!".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_num(2.0),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_err());
     }
@@ -320,11 +398,16 @@ mod tests {
     #[test]
     fn test_strign_concat() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: make_literal_str("hello, "), 
-            operator: Token { ttype: TokenType::Plus, lexeme: "+".to_string(), line: 1, literal: None }, 
-            right: make_literal_str("world")
-        } ;
+        let expr = BinaryExpr {
+            left: make_literal_str("hello, "),
+            operator: Token {
+                ttype: TokenType::Plus,
+                lexeme: "+".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_str("world"),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Str("hello, world".to_string())));
@@ -333,11 +416,16 @@ mod tests {
     #[test]
     fn test_binary_greater() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: make_literal_num(10.0), 
-            operator: Token { ttype: TokenType::Greater, lexeme: ">".to_string(), line: 1, literal: None }, 
-            right: make_literal_num(2.0)
-        } ;
+        let expr = BinaryExpr {
+            left: make_literal_num(10.0),
+            operator: Token {
+                ttype: TokenType::Greater,
+                lexeme: ">".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_num(2.0),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Bool(true)));
@@ -346,11 +434,16 @@ mod tests {
     #[test]
     fn test_binary_less() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: make_literal_num(1.0), 
-            operator: Token { ttype: TokenType::Less, lexeme: "<".to_string(), line: 1, literal: None }, 
-            right: make_literal_num(2.0)
-        } ;
+        let expr = BinaryExpr {
+            left: make_literal_num(1.0),
+            operator: Token {
+                ttype: TokenType::Less,
+                lexeme: "<".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_num(2.0),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Bool(true)));
@@ -359,11 +452,16 @@ mod tests {
     #[test]
     fn test_binary_greater_equal() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: make_literal_num(2.0), 
-            operator: Token { ttype: TokenType::GreaterEqual, lexeme: ">=".to_string(), line: 1, literal: None }, 
-            right: make_literal_num(2.0)
-        } ;
+        let expr = BinaryExpr {
+            left: make_literal_num(2.0),
+            operator: Token {
+                ttype: TokenType::GreaterEqual,
+                lexeme: ">=".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_num(2.0),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Bool(true)));
@@ -372,11 +470,16 @@ mod tests {
     #[test]
     fn test_binary_less_equal() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: make_literal_num(1.0), 
-            operator: Token { ttype: TokenType::LessEqual, lexeme: "<=".to_string(), line: 1, literal: None }, 
-            right: make_literal_num(2.0)
-        } ;
+        let expr = BinaryExpr {
+            left: make_literal_num(1.0),
+            operator: Token {
+                ttype: TokenType::LessEqual,
+                lexeme: "<=".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_num(2.0),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Bool(true)));
@@ -385,11 +488,16 @@ mod tests {
     #[test]
     fn test_binary_equal_equal() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: make_literal_num(2.0), 
-            operator: Token { ttype: TokenType::EqualEqual, lexeme: "==".to_string(), line: 1, literal: None }, 
-            right: make_literal_num(2.0)
-        } ;
+        let expr = BinaryExpr {
+            left: make_literal_num(2.0),
+            operator: Token {
+                ttype: TokenType::Equal,
+                lexeme: "==".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_num(2.0),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Bool(true)));
@@ -398,24 +506,34 @@ mod tests {
     #[test]
     fn test_binary_equal_equal_str() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: make_literal_str("hello"), 
-            operator: Token { ttype: TokenType::EqualEqual, lexeme: "==".to_string(), line: 1, literal: None }, 
-            right: make_literal_str("hello")
-        } ;
+        let expr = BinaryExpr {
+            left: make_literal_str("hello"),
+            operator: Token {
+                ttype: TokenType::Equal,
+                lexeme: "==".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_str("hello"),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Bool(true)));
     }
 
-    #[test] 
+    #[test]
     fn test_binary_bang_equal() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: make_literal_num(2.0), 
-            operator: Token { ttype: TokenType::BangEqual, lexeme: "!=".to_string(), line: 1, literal: None }, 
-            right: make_literal_num(3.0)
-        } ;
+        let expr = BinaryExpr {
+            left: make_literal_num(2.0),
+            operator: Token {
+                ttype: TokenType::BangEqual,
+                lexeme: "!=".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_num(3.0),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Bool(true)));
@@ -424,11 +542,16 @@ mod tests {
     #[test]
     fn test_binary_bang_equal_str() {
         let mut interpreter = Interpreter::new();
-        let expr =  BinaryExpr { 
-            left: make_literal_str("hello"), 
-            operator: Token { ttype: TokenType::BangEqual, lexeme: "!=".to_string(), line: 1, literal: None }, 
-            right: make_literal_str("world")
-        } ;
+        let expr = BinaryExpr {
+            left: make_literal_str("hello"),
+            operator: Token {
+                ttype: TokenType::BangEqual,
+                lexeme: "!=".to_string(),
+                line: 1,
+                literal: None,
+            },
+            right: make_literal_str("world"),
+        };
         let result = interpreter.visit_binary_expr(&expr);
         assert!(result.is_ok());
         assert_eq!(result.ok(), Some(Object::Bool(true)));
@@ -441,42 +564,48 @@ mod tests {
         assert_eq!(interpreter.is_truthy(&Object::Bool(false)), false);
         assert_eq!(interpreter.is_truthy(&Object::Bool(true)), true);
         assert_eq!(interpreter.is_truthy(&Object::Num(0.0)), true);
-        assert_eq!(interpreter.is_truthy(&Object::Str("hello".to_string())), true);
+        assert_eq!(
+            interpreter.is_truthy(&Object::Str("hello".to_string())),
+            true
+        );
     }
 
     #[test]
     fn test_var_stmt_defined() {
         let mut interpreter = Interpreter::new();
         let token = Token::new(TokenType::Identifier, "foo".to_string(), None, 0);
-        let var_stmt = VarStmt{
+        let var_stmt = VarStmt {
             name: token.dup(),
-            initializer:Some(*make_literal_num(20.0))
+            initializer: Some(*make_literal_num(20.0)),
         };
         assert!(interpreter.visit_var_stmt(&var_stmt).is_ok());
-        assert_eq!(interpreter.environment.borrow().get(&token).unwrap(), Object::Num(20.0))
+        assert_eq!(
+            interpreter.environment.borrow().get(&token).unwrap(),
+            Object::Num(20.0)
+        )
     }
 
     #[test]
     fn test_var_stmt_undefined() {
         let mut interpreter = Interpreter::new();
         let token = Token::new(TokenType::Identifier, "foo".to_string(), None, 0);
-        let var_stmt = VarStmt{
+        let var_stmt = VarStmt {
             name: token.dup(),
-            initializer: None
+            initializer: None,
         };
         assert!(interpreter.visit_var_stmt(&var_stmt).is_ok());
-        assert_eq!(interpreter.environment.borrow().get(&token).unwrap(), Object::Nil)
+        assert_eq!(
+            interpreter.environment.borrow().get(&token).unwrap(),
+            Object::Nil
+        )
     }
 
-     
-     #[test]
+    #[test]
     fn test_undefined_visit_variable_expr() {
-      let mut interpreter = Interpreter::new();
+        let mut interpreter = Interpreter::new();
         let token = Token::new(TokenType::Identifier, "foo".to_string(), None, 0);
-        
-        let var_expr = VariableExpr {
-            name: token.dup()
-        };
+
+        let var_expr = VariableExpr { name: token.dup() };
         assert!(interpreter.visit_variable_expr(&var_expr).is_err())
     }
 }

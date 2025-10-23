@@ -1,52 +1,51 @@
 use core::fmt;
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenType {
     // Single-character tokens.
-    LeftParen, 
-    RightParen, 
-    LeftBrace, 
+    LeftParen,
+    RightParen,
+    LeftBrace,
     RightBrace,
-    Comma, 
-    Dot, 
-    Minus, 
-    Plus, 
-    Semicolon, 
-    Slash, 
+    Comma,
+    Dot,
+    Minus,
+    Plus,
+    Semicolon,
+    Slash,
     Star,
     // One or two character tokens.
-    Bang, 
+    Bang,
     BangEqual,
-    Equal, 
-    EqualEqual,
-    Greater, 
+    Assign, //('=' )
+    Equal,  // ('==' )
+    Greater,
     GreaterEqual,
-    Less, 
+    Less,
     LessEqual,
     // Literals.
-    Identifier, 
-    String, 
+    Identifier,
+    String,
     Number,
 
     // Keywords.
-    And, 
-    Class, 
-    Else, 
-    False, 
-    Fun, 
-    For, 
-    If, 
-    Nil, 
+    And,
+    Class,
+    Else,
+    False,
+    Fun,
+    For,
+    If,
+    Nil,
     Or,
-    Print, 
-    Return, 
-    Super, 
-    This, 
-    True, 
-    Var, 
+    Print,
+    Return,
+    Super,
+    This,
+    True,
+    Var,
     While,
-    Eof
+    Eof,
 }
 
 impl fmt::Display for TokenType {
@@ -68,8 +67,8 @@ impl fmt::Display for TokenType {
             // One or two character tokens.
             TokenType::Bang => write!(f, "!"),
             TokenType::BangEqual => write!(f, "!="),
-            TokenType::Equal => write!(f, "="),
-            TokenType::EqualEqual => write!(f, "=="),
+            TokenType::Assign => write!(f, "="),
+            TokenType::Equal => write!(f, "=="),
             TokenType::Greater => write!(f, ">"),
             TokenType::GreaterEqual => write!(f, ">="),
             TokenType::Less => write!(f, "<"),

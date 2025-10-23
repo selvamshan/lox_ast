@@ -5,35 +5,56 @@ use crate::token_type::TokenType;
 pub struct LoxError {
     token: Option<Token>,
     line: usize,
-    message: String
+    message: String,
 }
 
 impl LoxError {
-    pub fn error(line:usize, message:&str) -> LoxError {
-        let err = LoxError {token:None, line, message:message.to_string() };
+    pub fn error(line: usize, message: &str) -> LoxError {
+        let err = LoxError {
+            token: None,
+            line,
+            message: message.to_string(),
+        };
         err.report("");
         err
     }
 
-    pub fn parse_error(token: &Token, message:&str) -> LoxError {
-        let err = LoxError { token:Some(token.dup()), line: token.line, message: message.to_string() };
+    pub fn parse_error(token: &Token, message: &str) -> LoxError {
+        let err = LoxError {
+            token: Some(token.dup()),
+            line: token.line,
+            message: message.to_string(),
+        };
         err.report("");
         err
     }
 
-    pub fn runtime_error(token: &Token, message:&str) -> LoxError {
-        let err = LoxError { token:Some(token.dup()), line: token.line, message: message.to_string() };
+    pub fn runtime_error(token: &Token, message: &str) -> LoxError {
+        let err = LoxError {
+            token: Some(token.dup()),
+            line: token.line,
+            message: message.to_string(),
+        };
         err.report("");
         err
     }
 
-    pub fn report(&self, loc:&str) {
+    pub fn report(&self, loc: &str) {
         if let Some(token) = &self.token {
             if token.is(&TokenType::Eof) {
-                eprintln!("[line {}] Error at end {}: {}", self.line, loc, self.message);
+                eprintln!(
+                    "[line {}] Error at end {}: {}",
+                    self.line, loc, self.message
+                );
                 return;
             } else {
-                eprintln!("[line {}] Error at '{}' {}: {}", self.line, token.as_string(), loc, self.message);
+                eprintln!(
+                    "[line {}] Error at '{}' {}: {}",
+                    self.line,
+                    token.as_string(),
+                    loc,
+                    self.message
+                );
                 return;
             }
         }

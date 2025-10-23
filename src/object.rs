@@ -1,8 +1,7 @@
 use core::fmt;
-use std::ops::{Add, Div, Mul, Sub};
-use std::cmp::Ordering;
 use std::backtrace;
-
+use std::cmp::Ordering;
+use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Object {
@@ -10,7 +9,7 @@ pub enum Object {
     Str(String),
     Bool(bool),
     Nil,
-    ArithmeticError,    
+    ArithmeticError,
 }
 
 impl fmt::Display for Object {
@@ -19,8 +18,8 @@ impl fmt::Display for Object {
             Object::Num(n) => write!(f, "{}", n),
             Object::Str(s) => write!(f, "{}", s),
             Object::Nil => write!(f, "nil"),
-            Object::Bool(b) => write!(f, "{}", b),   
-            Object::ArithmeticError => panic!("Should not print ArithmeticError"),       
+            Object::Bool(b) => write!(f, "{}", b),
+            Object::ArithmeticError => panic!("Should not print ArithmeticError"),
         }
     }
 }
@@ -34,15 +33,15 @@ impl Object {
         }
     }
 
-    pub fn to_string(&self) -> String {
-        match self {
-            Object::Num(n) => n.to_string(),
-            Object::Str(s) => s.clone(),
-            Object::Nil => "nil".to_string(),
-            Object::Bool(b) => b.to_string(),
-            Object::ArithmeticError => "ArithmeticError".to_string(),
-        }
-    }
+    // pub fn to_string(&self) -> String {
+    //     match self {
+    //         Object::Num(n) => n.to_string(),
+    //         Object::Str(s) => s.clone(),
+    //         Object::Nil => "nil".to_string(),
+    //         Object::Bool(b) => b.to_string(),
+    //         Object::ArithmeticError => "ArithmeticError".to_string(),
+    //     }
+    // }
 }
 
 impl Sub for Object {
@@ -95,7 +94,7 @@ impl PartialOrd for Object {
         match (self, other) {
             (Object::Num(l), Object::Num(r)) => l.partial_cmp(r),
             (Object::Nil, o) => {
-                if o == &Object::Nil{
+                if o == &Object::Nil {
                     Some(Ordering::Equal)
                 } else {
                     None
@@ -104,10 +103,7 @@ impl PartialOrd for Object {
             _ => None,
         }
     }
-    
-   
 }
-
 
 impl PartialEq<f64> for Object {
     fn eq(&self, other: &f64) -> bool {
@@ -131,7 +127,6 @@ impl PartialEq<String> for Object {
 mod tests {
     use super::*;
 
-    
     #[test]
     fn test_num_object_equality() {
         let obj = Object::Num(5.0);
@@ -147,6 +142,4 @@ mod tests {
         assert!(obj2 > obj1);
         assert_eq!(obj1.partial_cmp(&obj2), Some(std::cmp::Ordering::Less));
     }
-
-   
 }

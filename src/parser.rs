@@ -1,19 +1,23 @@
-use crate::token_type::*;
-use crate::object::*;
-use crate::token::*;
 use crate::error::*;
 use crate::expr::*;
+use crate::object::*;
 use crate::stmt::*;
-         
+use crate::token::*;
+use crate::token_type::*;
+
 pub struct Parser<'a> {
-     pub
     tokens: &'a [Token],
     current: usize,
+    had_error: bool,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a [Token]) -> Self {
-        Parser { tokens, current: 0 }
+        Parser {
+            tokens,
+            current: 0,
+            had_error: false,
+        }
     }
 
     pub fn parse(&mut self) -> Result<Vec<Stmt>, LoxError> {
@@ -21,18 +25,20 @@ impl<'a> Parser<'a> {
         while !self.is_at_end() {
             statements.push(self.declaration()?)
         }
-        
+
         Ok(statements)
     }
 
-  
+    pub fn success(&self) -> bool {
+        !self.had_error
+    }
 
     fn is_at_end(&self) -> bool {
         self.peek().is(&TokenType::Eof)
     }
 
     fn peek(&self) -> &Token {
-       &self.tokens[self.current]
+        &self.tokens[self.current]
     }
 
     fn previous(&self) -> &Token {
@@ -46,13 +52,12 @@ impl<'a> Parser<'a> {
         self.previous()
     }
 
- 
     fn check(&self, ttype: &TokenType) -> bool {
         if self.is_at_end() {
             return false;
         }
         &self.peek().token_type() == ttype
-    } 
+    }
 
     fn match_tokens(&mut self, types: &[TokenType]) -> bool {
         for t in types {
@@ -65,7 +70,7 @@ impl<'a> Parser<'a> {
     }
 
     fn declaration(&mut self) -> Result<Stmt, LoxError> {
-        let result = if self.match_tokens(&[TokenType::Var]){
+        let result = if self.match_tokens(&[TokenType::Var]) {
             self.var_declaration()
         } else {
             self.statement()
@@ -78,15 +83,15 @@ impl<'a> Parser<'a> {
     }
 
     fn expression(&mut self) -> Result<Expr, LoxError> {
-        self.equality()
-    }  
+        //self.equality()
+        self.assignment()
+    }
 
     fn statement(&mut self) -> Result<Stmt, LoxError> {
         if self.match_tokens(&[TokenType::Print]) {
             return self.print_statement();
         }
         self.expresion_statement()
-
     }
 
     fn print_statement(&mut self) -> Result<Stmt, LoxError> {
@@ -97,13 +102,19 @@ impl<'a> Parser<'a> {
 
     fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
         let name = self.consume(TokenType::Identifier, "Expect variable name")?;
-        let initializer = if self.match_tokens(&[TokenType::Equal]) {
+        let initializer = if self.match_tokens(&[TokenType::Assign]) {
             Some(self.expression()?)
-        } else{
+        } else {
             None
         };
-        self.consume(TokenType::Semicolon, "Expected ':' after variable declaration")?;
-        Ok(Stmt::Var(VarStmt { name:name.clone(), initializer }))
+        self.consume(
+            TokenType::Semicolon,
+            "Expected ':' after variable declaration",
+        )?;
+        Ok(Stmt::Var(VarStmt {
+            name: name.clone(),
+            initializer,
+        }))
     }
 
     fn expresion_statement(&mut self) -> Result<Stmt, LoxError> {
@@ -112,18 +123,35 @@ impl<'a> Parser<'a> {
         Ok(Stmt::Expression(ExpressionStmt { expression: expr }))
     }
 
+    fn assignment(&mut self) -> Result<Expr, LoxError> {
+        let expr = self.equality()?;
+        if self.match_tokens(&[TokenType::Assign]) {
+            let equals = self.previous().dup();
+            let value = self.assignment()?;
+
+            if let Expr::Variable(expr) = expr {
+                return Ok(Expr::Assign(AssignExpr {
+                    name: expr.name.dup(),
+                    value: Box::new(value),
+                }));
+            }
+            self.error(&equals, "Invalid assignment target ");
+        }
+        Ok(expr)
+    }
+
     fn equality(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.comparison()?;
 
-        while self.match_tokens(&[TokenType::BangEqual, TokenType::EqualEqual]) {
+        while self.match_tokens(&[TokenType::BangEqual, TokenType::Equal]) {
             let operator = self.previous().dup();
             let right = self.comparison()?;
-            expr = Expr::Binary( BinaryExpr {
+            expr = Expr::Binary(BinaryExpr {
                 left: Box::new(expr),
                 operator,
                 right: Box::new(right),
             });
-        }        
+        }
 
         Ok(expr)
     }
@@ -139,7 +167,7 @@ impl<'a> Parser<'a> {
         ]) {
             let operator = self.previous().clone();
             let right = self.term()?;
-            expr = Expr::Binary( BinaryExpr {
+            expr = Expr::Binary(BinaryExpr {
                 left: Box::new(expr),
                 operator,
                 right: Box::new(right),
@@ -155,7 +183,7 @@ impl<'a> Parser<'a> {
         while self.match_tokens(&[TokenType::Minus, TokenType::Plus]) {
             let operator = self.previous().clone();
             let right = self.factor()?;
-            expr = Expr::Binary( BinaryExpr {
+            expr = Expr::Binary(BinaryExpr {
                 left: Box::new(expr),
                 operator,
                 right: Box::new(right),
@@ -171,7 +199,7 @@ impl<'a> Parser<'a> {
         while self.match_tokens(&[TokenType::Slash, TokenType::Star]) {
             let operator = self.previous().clone();
             let right = self.unary()?;
-            expr = Expr::Binary( BinaryExpr {
+            expr = Expr::Binary(BinaryExpr {
                 left: Box::new(expr),
                 operator,
                 right: Box::new(right),
@@ -185,7 +213,7 @@ impl<'a> Parser<'a> {
         if self.match_tokens(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous().clone();
             let right = self.unary()?;
-            return Ok(Expr::Unary( UnaryExpr {
+            return Ok(Expr::Unary(UnaryExpr {
                 operator,
                 right: Box::new(right),
             }));
@@ -194,33 +222,43 @@ impl<'a> Parser<'a> {
         self.primary()
     }
 
-
     fn primary(&mut self) -> Result<Expr, LoxError> {
         if self.match_tokens(&[TokenType::False]) {
-            return Ok(Expr::Literal( LiteralExpr { value: Some(Object::Bool(false)) }));
+            return Ok(Expr::Literal(LiteralExpr {
+                value: Some(Object::Bool(false)),
+            }));
         }
         if self.match_tokens(&[TokenType::True]) {
-            return Ok(Expr::Literal( LiteralExpr { value: Some(Object::Bool(true)) }));
+            return Ok(Expr::Literal(LiteralExpr {
+                value: Some(Object::Bool(true)),
+            }));
         }
         if self.match_tokens(&[TokenType::Nil]) {
-            return Ok(Expr::Literal( LiteralExpr { value: Some(Object::Nil) }));
+            return Ok(Expr::Literal(LiteralExpr {
+                value: Some(Object::Nil),
+            }));
         }
 
-        if self.match_tokens(&[TokenType::Number, TokenType::String]){
-            return Ok(Expr::Literal( LiteralExpr { value: self.previous().literal.clone() }) );
+        if self.match_tokens(&[TokenType::Number, TokenType::String]) {
+            return Ok(Expr::Literal(LiteralExpr {
+                value: self.previous().literal.clone(),
+            }));
         }
 
         if self.match_tokens(&[TokenType::Identifier]) {
-            return Ok(Expr::Variable(VariableExpr { name: self.previous().dup() }));
+            return Ok(Expr::Variable(VariableExpr {
+                name: self.previous().dup(),
+            }));
         }
 
         if self.match_tokens(&[TokenType::LeftParen]) {
             let expr = self.expression()?;
             self.consume(TokenType::RightParen, "Expected ')' after expression.")?;
-            return Ok(Expr::Grouping( GroupingExpr { expression: Box::new(expr) }));
+            return Ok(Expr::Grouping(GroupingExpr {
+                expression: Box::new(expr),
+            }));
         }
 
-        
         Err(LoxError::error(self.peek().line, "Expected expression."))
     }
 
@@ -230,7 +268,8 @@ impl<'a> Parser<'a> {
         }
 
         //Err(LoxError::error(self.peek().line, message.to_string()))
-        Err(Parser::error(self.peek(), message))
+        let token = self.peek().dup();
+        Err(self.error(&token, message))
     }
 
     fn synchronize(&mut self) {
@@ -242,14 +281,14 @@ impl<'a> Parser<'a> {
             }
 
             match self.peek().token_type() {
-                TokenType::Class |
-                TokenType::Fun |
-                TokenType::Var |
-                TokenType::For |
-                TokenType::If |
-                TokenType::While |
-                TokenType::Print |
-                TokenType::Return => return,
+                TokenType::Class
+                | TokenType::Fun
+                | TokenType::Var
+                | TokenType::For
+                | TokenType::If
+                | TokenType::While
+                | TokenType::Print
+                | TokenType::Return => return,
                 _ => {}
             }
 
@@ -257,10 +296,8 @@ impl<'a> Parser<'a> {
         }
     }
 
-        
-    fn error(token: &Token, message: &str) -> LoxError {
+    fn error(&mut self, token: &Token, message: &str) -> LoxError {
+        self.had_error = true;
         LoxError::parse_error(token, message)
     }
-
-    
 }

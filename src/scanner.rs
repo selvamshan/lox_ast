@@ -1,49 +1,44 @@
-use std::f32::consts;
 use crate::object::Object;
 use crate::{error::LoxError, token::*, token_type::TokenType};
-
- 
+use std::f32::consts;
 
 pub struct Scanner {
     source: String,
     tokens: Vec<Token>,
     start: usize,
     current: usize,
-    line: usize    
-}   
-
+    line: usize,
+}
 
 impl Scanner {
     pub fn new(source: &str) -> Self {
-        
         Self {
             source: source.to_string(),
             tokens: Vec::new(),
             start: 0,
             current: 0,
-            line: 1            
+            line: 1,
         }
     }
-    
+
     pub fn scan_tokens(&mut self) -> Result<&Vec<Token>, LoxError> {
-        let mut has_error :Option<LoxError> = None;
-      
+        let mut has_error: Option<LoxError> = None;
+
         while !self.is_at_end() {
             self.start = self.current;
             // Here would be the logic to scan a single token
             match self.scan_token() {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => {
                     e.report("");
                     has_error = Some(e);
                 }
             }
-         
         }
         self.tokens.push(Token::eof(self.line));
         if let Some(e) = has_error {
             return Err(e);
-        } 
+        }
         Ok(&self.tokens)
     }
 
@@ -66,7 +61,6 @@ impl Scanner {
             return true;
         }
         false
-        
     }
 
     fn peek(&self) -> char {
@@ -101,7 +95,8 @@ impl Scanner {
     }
 
     fn is_digit(&self, c: char) -> bool {
-        c >= '0' && c <= '9'
+        c.is_ascii_digit()
+        //('0'..='9').contains(&c)//c >= '0' && c <= '9'
     }
 
     fn peek_next(&self) -> char {
@@ -113,7 +108,7 @@ impl Scanner {
 
     fn number(&mut self) -> Result<(), LoxError> {
         while self.is_digit(self.peek()) {
-           self.advance();            
+            self.advance();
         }
 
         // Look for a fractional part.
@@ -126,7 +121,7 @@ impl Scanner {
             }
         }
 
-        let value = &self.source[self.start..self.current];  
+        let value = &self.source[self.start..self.current];
 
         if let Ok(number_value) = value.parse::<f64>() {
             self.add_token(TokenType::Number, Some(Object::Num(number_value)));
@@ -135,7 +130,7 @@ impl Scanner {
             Err(LoxError::error(self.line, "Invalid number."))
         }
         //let number_value: f64 = value.parse().unwrap();
-        
+
         //self.add_token(TokenType::Number, Some(Object::Num(number_value)));
     }
 
@@ -143,15 +138,14 @@ impl Scanner {
         // (c >= 'a' && c <= 'z') ||
         // (c >= 'A' && c <= 'Z') ||
         // c == '_'
-        ('A'..='Z').contains(&c) ||
-         ('a'..='z').contains(&c) ||
-          c == '_'
+        //('A'..='Z').contains(&c) || ('a'..='z').contains(&c) || c == '_'
+        c.is_ascii_uppercase() || c.is_ascii_lowercase() || c == '_'
     }
 
     fn is_alpha_numeric(&self, c: char) -> bool {
         self.is_alpha(c) || self.is_digit(c)
     }
-    
+
     fn keyword(check: &str) -> Option<TokenType> {
         match check {
             "and" => Some(TokenType::And),
@@ -183,11 +177,10 @@ impl Scanner {
         } else {
             self.add_token(TokenType::Identifier, None);
         }
-        
     }
-    fn scan_comment(&mut self) -> Result<(), LoxError> {        
+    fn scan_comment(&mut self) -> Result<(), LoxError> {
         loop {
-            match self.peek() {               
+            match self.peek() {
                 '*' => {
                     if self.peek_next() == '/' {
                         self.advance(); // consume '*'
@@ -213,79 +206,129 @@ impl Scanner {
                 }
                 '\0' => {
                     return Err(LoxError::error(self.line, "Unterminated comment"));
-                }// End of source
+                } // End of source
                 _ => {
                     self.advance();
                 }
             }
         }
-       
     }
 
     fn scan_token(&mut self) -> Result<(), LoxError> {
         // Placeholder for scanning a single token
         let c = self.advance();
         match c {
-            '(' => Ok(self.add_token(TokenType::LeftParen, None)),
-            ')' => Ok(self.add_token(TokenType::RightParen, None)),
-            '{' => Ok(self.add_token(TokenType::LeftBrace, None)),
-            '}' => Ok(self.add_token(TokenType::RightBrace, None)),
-            ',' => Ok(self.add_token(TokenType::Comma, None)),
-            '.' => Ok(self.add_token(TokenType::Dot, None)),
-            '-' => Ok(self.add_token(TokenType::Minus, None)),
-            '+' => Ok(self.add_token(TokenType::Plus, None)),
-            ';' => Ok(self.add_token(TokenType::Semicolon, None)),
-            '*' => Ok(self.add_token(TokenType::Star, None)),
-            '!'  => match self.is_match('=') {
-                true => Ok(self.add_token(TokenType::BangEqual, None)),
-                false => Ok(self.add_token(TokenType::Bang, None)),
+            '(' => {
+                self.add_token(TokenType::LeftParen, None);
+                Ok(())
+            }
+            ')' => {
+                self.add_token(TokenType::RightParen, None);
+                Ok(())
+            },
+            '{' =>  {
+                self.add_token(TokenType::LeftBrace, None);
+                Ok(())
+            },
+            '}' => {
+                self.add_token(TokenType::RightBrace, None);
+                Ok(())
+            },
+            ',' => {
+                self.add_token(TokenType::Comma, None);
+                Ok(())
+            },
+            '.' => {
+                self.add_token(TokenType::Dot, None);
+                Ok(())
+            },
+            '-' => {
+                self.add_token(TokenType::Minus, None);
+                Ok(())
+            },
+            '+' => {
+                self.add_token(TokenType::Plus, None);
+                Ok(())
+            },
+            ';' => {
+                self.add_token(TokenType::Semicolon, None);
+                Ok(())
+            },
+            '*' => {
+                self.add_token(TokenType::Star, None);
+                Ok(())
+            },
+            '!' => match self.is_match('=') {
+                true => {
+                    self.add_token(TokenType::BangEqual, None);
+                    Ok(())
+                },
+                false => {
+                    self.add_token(TokenType::Bang, None);
+                    Ok(())
+                },
             },
             '=' => match self.is_match('=') {
-                true => Ok(self.add_token(TokenType::EqualEqual, None)),
-                false => Ok(self.add_token(TokenType::Equal, None)),
+                true => {
+                    self.add_token(TokenType::Equal, None);
+                    Ok(())
+                },
+                false => {
+                    self.add_token(TokenType::Assign, None);
+                    Ok(())
+                },
             },
             '>' => match self.is_match('=') {
-                true => Ok(self.add_token(TokenType::GreaterEqual, None)),
-                false => Ok(self.add_token(TokenType::Greater, None)),
+                true => {
+                    self.add_token(TokenType::GreaterEqual, None);
+                    Ok(())
+                },
+                false => {
+                    self.add_token(TokenType::Greater, None);
+                    Ok(())
+                },
             },
             '<' => match self.is_match('=') {
-                true => Ok(self.add_token(TokenType::LessEqual, None)),
-                false => Ok(self.add_token(TokenType::Less, None)),
+                true => {
+                    self.add_token(TokenType::LessEqual, None);
+                    Ok(())
+                },
+                false => {
+                    self.add_token(TokenType::Less, None);
+                    Ok(())
+                },
             },
             '/' => {
                 if self.is_match('/') {
                     // A comment goes until the end of the line.
                     while self.peek() != '\n' && !self.is_at_end() {
                         self.advance();
-                        
                     }
                 } else if self.is_match('*') {
                     // Multiline comment
                     self.scan_comment()?;
-                }
-                else {
+                } else {
                     self.add_token(TokenType::Slash, None);
                 }
                 Ok(())
             }
 
-            ' '| '\r' | '\t' => {
+            ' ' | '\r' | '\t' => {
                 // Ignore whitespace.
                 Ok(())
             }
             '\n' => {
                 self.line += 1;
                 Ok(())
-            },
+            }
             '"' => {
                 // String literal scanning would go here
-                match self.scan_string(){
-                    Ok(_) => Ok(()) ,
+                match self.scan_string() {
+                    Ok(_) => Ok(()),
                     Err(e) => Err(e),
                 }
-                
-            },
-           '0'..='9' => {
+            }
+            '0'..='9' => {
                 //Number literal scanning would go here
                 // if self.is_digit(c) {
                 //   self.number()?;
@@ -293,12 +336,11 @@ impl Scanner {
                 //     return Err(LoxError::error(self.line, "Invalid number.".to_string()));
                 // }
                 //  Ok(())
-                match self.number(){
+                match self.number() {
                     Ok(_) => Ok(()),
                     Err(e) => Err(e),
-                }        
-               
-            },            
+                }
+            }
             _ => {
                 if self.is_alpha(c) {
                     self.identifier();
@@ -307,13 +349,11 @@ impl Scanner {
                 Err(LoxError::error(self.line, "Unexpected character."))
             }
         }
-         
     }
 
- 
-
-    fn add_token(&mut self, ttype: TokenType, literal: Option<Object>)  {
+    fn add_token(&mut self, ttype: TokenType, literal: Option<Object>) {
         let text = &self.source[self.start..self.current];
-        self.tokens.push(Token::new(ttype, text.to_string(), literal, self.line));
+        self.tokens
+            .push(Token::new(ttype, text.to_string(), literal, self.line));
     }
 }

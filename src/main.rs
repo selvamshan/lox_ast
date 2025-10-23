@@ -11,35 +11,29 @@ use scanner::*;
 mod parser;
 use parser::*;
 mod expr;
-mod stmt;
 mod interpreter;
+mod stmt;
 use interpreter::*;
-mod environment;
 mod ast_printer;
+mod environment;
 use ast_printer::AstPrinter;
 
-
 use std::env::args;
-use std::io::{self, BufReader, BufRead, Read, Write, stdout};
 use std::fs::File;
-
-
-
+use std::io::{self, BufRead, BufReader, Read, Write, stdout};
 
 fn main() {
-    let args:Vec<String> = args().collect();
-    let mut lux =  Lux::new();
+    let args: Vec<String> = args().collect();
+    let mut lux = Lux::new();
     println!("args: {:?}, {}", args, args.len());
     if args.len() > 2 {
         println!("Usage: lox ast [Script]");
-       std::process::exit(64);
-    } 
-    else if args.len() == 2{
+        std::process::exit(64);
+    } else if args.len() == 2 {
         let _ = lux.run_file(&args[1]);
     } else {
-       lux.run_prompt()
+        lux.run_prompt()
     }
-  
 }
 
 struct Lux {
@@ -47,15 +41,13 @@ struct Lux {
 }
 
 impl Lux {
-
     pub fn new() -> Self {
         Lux {
             interpreter: Interpreter::new(),
         }
     }
-    
-    pub fn run_file(&mut self, path:&String) -> io::Result<()> {
-        
+
+    pub fn run_file(&mut self, path: &String) -> io::Result<()> {
         let buf = std::fs::read_to_string(path)?;
         if self.run(buf.as_str()).is_err() {
             std::process::exit(65);
@@ -66,11 +58,11 @@ impl Lux {
         //     //e.report("".to_string());
         //     std::process::exit(65);
         //     }
-        
+
         Ok(())
     }
 
-    pub fn run_prompt(&mut self,) {
+    pub fn run_prompt(&mut self) {
         let stdin = io::stdin();
         print!("* ");
         stdout().flush().unwrap();
@@ -79,12 +71,12 @@ impl Lux {
                 if line.is_empty() {
                     break;
                 }
-            match self.run(line.as_str()){
-                Ok(_) => (),
-                Err(_) => {
-                    // ingnore: error was already reported 
+                match self.run(line.as_str()) {
+                    Ok(_) => (),
+                    Err(_) => {
+                        // ingnore: error was already reported
+                    }
                 }
-            }
             } else {
                 break;
             }
@@ -93,22 +85,16 @@ impl Lux {
         }
     }
 
-
-
-    pub fn run(&mut self,source: &str) -> Result<(), LoxError>{
+    pub fn run(&mut self, source: &str) -> Result<(), LoxError> {
         let mut scanner = Scanner::new(source);
-        let tokens = scanner.scan_tokens()?;    
+        let tokens = scanner.scan_tokens()?;
         let mut parser = Parser::new(tokens);
         let statements = parser.parse()?;
-        if self.interpreter.interpret(&statements) {
-          Ok(())
-        } else{            
-             Err(LoxError::error(0, ""))
-        }
-        
+        if parser.success() {
+             self.interpreter.interpret(&statements);
+            
+        } 
+        Ok(())
         
     }
 }
-
-
-
