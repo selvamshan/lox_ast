@@ -45,4 +45,8 @@ impl ExprVisitor<String> for AstPrinter {
         
         self.paranthesize(&expr.operator.lexeme, &[&expr.left, &expr.right])
     }
+
+    fn visit_variable_expr(&mut self, _expr: &VariableExpr) -> Result<String, LoxError> {
+        Ok("".to_string())
+    }
 }

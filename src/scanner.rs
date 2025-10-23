@@ -132,7 +132,7 @@ impl Scanner {
             self.add_token(TokenType::Number, Some(Object::Num(number_value)));
             Ok(())
         } else {
-            return Err(LoxError::error(self.line, "Invalid number."));
+            Err(LoxError::error(self.line, "Invalid number."))
         }
         //let number_value: f64 = value.parse().unwrap();
         
@@ -140,9 +140,12 @@ impl Scanner {
     }
 
     fn is_alpha(&self, c: char) -> bool {
-        (c >= 'a' && c <= 'z') ||
-        (c >= 'A' && c <= 'Z') ||
-        c == '_'
+        // (c >= 'a' && c <= 'z') ||
+        // (c >= 'A' && c <= 'Z') ||
+        // c == '_'
+        ('A'..='Z').contains(&c) ||
+         ('a'..='z').contains(&c) ||
+          c == '_'
     }
 
     fn is_alpha_numeric(&self, c: char) -> bool {
@@ -278,7 +281,7 @@ impl Scanner {
                 // String literal scanning would go here
                 match self.scan_string(){
                     Ok(_) => Ok(()) ,
-                    Err(e) => return Err(e),
+                    Err(e) => Err(e),
                 }
                 
             },
@@ -292,7 +295,7 @@ impl Scanner {
                 //  Ok(())
                 match self.number(){
                     Ok(_) => Ok(()),
-                    Err(e) => return Err(e),
+                    Err(e) => Err(e),
                 }        
                
             },            
@@ -301,7 +304,7 @@ impl Scanner {
                     self.identifier();
                     return Ok(());
                 }
-                return Err(LoxError::error(self.line, "Unexpected character."));
+                Err(LoxError::error(self.line, "Unexpected character."))
             }
         }
          

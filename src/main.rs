@@ -14,6 +14,7 @@ mod expr;
 mod stmt;
 mod interpreter;
 use interpreter::*;
+mod environment;
 mod ast_printer;
 use ast_printer::AstPrinter;
 
@@ -49,7 +50,7 @@ impl Lux {
 
     pub fn new() -> Self {
         Lux {
-            interpreter: Interpreter {},
+            interpreter: Interpreter::new(),
         }
     }
     

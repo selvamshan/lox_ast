@@ -33,7 +33,7 @@ impl LoxError {
                 eprintln!("[line {}] Error at end {}: {}", self.line, loc, self.message);
                 return;
             } else {
-                eprintln!("[line {}] Error at '{}' {}: {}", self.line, token.as_str(), loc, self.message);
+                eprintln!("[line {}] Error at '{}' {}: {}", self.line, token.as_string(), loc, self.message);
                 return;
             }
         }

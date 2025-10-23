@@ -27,11 +27,8 @@ impl  Token {
         self.ttype.clone()
     }
 
-    pub fn as_str(&self) -> String {
-        match &self.literal {
-            Some(Object::Str(s)) => s.clone(),
-            _ => "".to_string()
-        }
+    pub fn as_string(&self) -> String {
+        self.lexeme.clone()
     }
 
     pub fn dup(&self) -> Self {
