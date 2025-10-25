@@ -43,10 +43,14 @@ impl Environment {
     }
 
     pub fn assign(&mut self, name: &Token, value: Object) -> Result<(), LoxError> {
-        if let Entry::Occupied(mut object) = self.values.entry(name.as_string()) {
+        if let Entry::Occupied(mut object) = self
+        .values.entry(name.as_string()) {
             object.insert(value);
             Ok(())
-        } else {
+        } else if let Some(enclosing) = &self.enclosing {
+            enclosing.borrow_mut().assign(name, value)
+        }
+        else {
             Err(LoxError::runtime_error(
                 name,
                 &format!("Undefined variable {} .", name.as_string()),

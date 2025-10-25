@@ -1,9 +1,12 @@
-if (4 == 5) 
+var i = 4;
+if (i == 5) 
 {
+ 
     print "yes";
 }
 else 
-{
+{      i = i + 1;
+       print i;
     print "No";
 }
 
@@ -24,4 +27,15 @@ else
 {
     print "F";
 }
+
+
+var i = 4;
+print i;
+while (i > 0)
+{
+    print i;
+    i = i - 1;
+}
+
+
 

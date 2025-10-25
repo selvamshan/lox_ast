@@ -25,7 +25,7 @@ impl Interpreter {
         expr.accept(self)
     }
 
-    fn exceute(&mut self, stmt: &Stmt) -> Result<(), LoxError> {
+    fn execute(&mut self, stmt: &Stmt) -> Result<(), LoxError> {
         stmt.accept(self)
     }
 
@@ -35,7 +35,7 @@ impl Interpreter {
         .replace(Rc::new(RefCell::new(environment)));
         let result = statements
         .iter()
-        .try_for_each(|statement| self.exceute(statement));
+        .try_for_each(|statement| self.execute(statement));
           
         self.environment.replace(previous);
 
@@ -50,7 +50,7 @@ impl Interpreter {
     pub fn interpret(&mut self, statements: &[Stmt]) -> bool {
         let mut had_error = true;
         for statement in statements {
-            if let Err(_e) = self.exceute(statement) {
+            if let Err(_e) = self.execute(statement) {
                 had_error = false;
                 break;
             }
@@ -61,13 +61,25 @@ impl Interpreter {
 
 impl StmtVisitor<()> for Interpreter {
 
+    fn visit_while_stmt(&mut self, stmt: &WhileStmt) -> Result<(), LoxError> { 
+
+        let mut condition = self.evaluate(&stmt.condition)?;
+        while self.is_truthy(&condition) {
+            self.execute(&stmt.body)?;
+            condition = self.evaluate(&stmt.condition)?;
+        }    
+    
+
+        Ok(())
+    }
+
     fn visit_if_stmt(&mut self, stmt: &IfStmt) -> Result<(), LoxError> {
         let condition = self.evaluate(&stmt.condition)?;
 
         if self.is_truthy(&condition) {
-            self.exceute(&stmt.then_branch)
+            self.execute(&stmt.then_branch)
         } else if let Some(else_branch) = &stmt.else_branch {
-            self.exceute(&else_branch)
+            self.execute(&else_branch)
         } else {
              Ok(())
         }       

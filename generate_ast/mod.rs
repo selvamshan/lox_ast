@@ -15,11 +15,11 @@ pub fn gerenate_ast(output_dir: &str) -> io::Result<()> {
         &["error", "token", "object"],
         &[
             "Assign      : name Token, value Box<Expr>",
-            "Literal     : value Option<Object>",            
-            "Grouping    : expression Box<Expr>",
-            "Unary       : operator Token, right Box<Expr>",
-            "Logical     : left Box<Expr>, operator Token, right Box<Expr>",
             "Binary      : left Box<Expr>, operator Token, right Box<Expr>",
+            "Grouping    : expression Box<Expr>",
+            "Literal     : value Option<Object>",  
+            "Logical     : left Box<Expr>, operator Token, right Box<Expr>",
+            "Unary       : operator Token, right Box<Expr>",          
             "Variable    : name Token",
         ],
     )?;
@@ -28,12 +28,13 @@ pub fn gerenate_ast(output_dir: &str) -> io::Result<()> {
         output_dir,
         "Stmt",
         &["error", "token", "expr"],
-        &[
-            "If         : condition Expr, then_branch Box<Stmt>, else_branch Option<Box<Stmt>>",
+        &[            
             "Block      : statements Vec<Stmt>",
             "Expression : expression Expr",
+            "If         : condition Expr, then_branch Box<Stmt>, else_branch Option<Box<Stmt>>",
             "Print      : expression Expr",
             "Var        : name Token, initializer Option<Expr>",
+            "While      : condition Expr, body Box<Stmt>"
         ],
     )?;
 

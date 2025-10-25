@@ -96,6 +96,10 @@ impl<'a> Parser<'a> {
             return self.print_statement();
         }
 
+        if self.is_match(&[TokenType::While]) {
+            return self.while_statement();
+        }
+
         if self.is_match(&[TokenType::LeftBrace]) {
            return Ok(Stmt::Block(BlockStmt { statements: self.block()? })) ;
         }
@@ -123,6 +127,15 @@ impl<'a> Parser<'a> {
         let value = self.expression()?;
         self.consume(TokenType::Semicolon, "Expect ';' after value")?;
         Ok(Stmt::Print(PrintStmt { expression: value }))
+    }
+
+    fn while_statement(&mut self) -> Result<Stmt, LoxError> {
+        //self.consume(TokenType::LeftParen, "Excpect '(' after while ")?;
+        let condition = self.expression()?;
+        //vprintln!("{:?}", condition);
+        //self.consume(TokenType::LeftParen, "Excpect '(' after while ")?;
+        let body = Box::new(self.statement()?);
+        Ok(Stmt::While(WhileStmt { condition, body }))
     }
 
     fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
