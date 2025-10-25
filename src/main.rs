@@ -64,7 +64,7 @@ impl Lux {
 
     pub fn run_prompt(&mut self) {
         let stdin = io::stdin();
-        print!("* ");
+        print!(">  ");
         stdout().flush().unwrap();
         for line in stdin.lock().lines() {
             if let Ok(line) = line {
@@ -80,7 +80,7 @@ impl Lux {
             } else {
                 break;
             }
-            print!("* ");
+            print!(">  ");
             stdout().flush().unwrap();
         }
     }

@@ -6,16 +6,18 @@ use crate::stmt::*;
 use crate::token::Token;
 use crate::token_type::*;
 
+use std::rc::Rc;
 use std::cell::RefCell;
+use std::result;
 
 pub struct Interpreter {
-    environment: RefCell<Environment>,
+    environment: RefCell<Rc<RefCell<Environment>>>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            environment: RefCell::new(Environment::new()),
+            environment: RefCell::new(Rc::new(RefCell::new(Environment::new()))),
         }
     }
 
@@ -25,6 +27,20 @@ impl Interpreter {
 
     fn exceute(&mut self, stmt: &Stmt) -> Result<(), LoxError> {
         stmt.accept(self)
+    }
+
+    fn exceute_block(&mut self, statements: &[Stmt], environment: Environment) 
+    -> Result<(), LoxError> {
+        let previous = self.environment
+        .replace(Rc::new(RefCell::new(environment)));
+        let result = statements
+        .iter()
+        .try_for_each(|statement| self.exceute(statement));
+          
+        self.environment.replace(previous);
+
+        result
+        
     }
 
     fn is_truthy(&self, obj: &Object) -> bool {
@@ -44,6 +60,12 @@ impl Interpreter {
 }
 
 impl StmtVisitor<()> for Interpreter {
+    fn visit_block_stmt(&mut self, stmt: &BlockStmt) -> Result<(), LoxError> {
+        let e = Environment::new_with_enclosing(self.environment.borrow().clone());
+        self.exceute_block(&stmt.statements, e)           
+    
+    }
+
     fn visit_expression_stmt(&mut self, stmt: &ExpressionStmt) -> Result<(), LoxError> {
         self.evaluate(&stmt.expression)?;
         Ok(())
@@ -63,6 +85,7 @@ impl StmtVisitor<()> for Interpreter {
         };
 
         self.environment
+            .borrow()
             .borrow_mut()
             .define(&stmt.name.as_string(), value);
         Ok(())
@@ -171,12 +194,13 @@ impl ExprVisitor<Object> for Interpreter {
     }
 
     fn visit_variable_expr(&mut self, expr: &VariableExpr) -> Result<Object, LoxError> {
-        self.environment.borrow().get(&expr.name)
+        self.environment.borrow().borrow().get(&expr.name)
     }
 
     fn visit_assign_expr(&mut self, expr: &AssignExpr) -> Result<Object, LoxError> {
         let value = self.evaluate(&expr.value)?;
         self.environment
+            .borrow()
             .borrow_mut()
             .assign(&expr.name, value.clone())?;
         Ok(value)
@@ -580,7 +604,7 @@ mod tests {
         };
         assert!(interpreter.visit_var_stmt(&var_stmt).is_ok());
         assert_eq!(
-            interpreter.environment.borrow().get(&token).unwrap(),
+            interpreter.environment.borrow().borrow().get(&token).unwrap(),
             Object::Num(20.0)
         )
     }
@@ -595,7 +619,7 @@ mod tests {
         };
         assert!(interpreter.visit_var_stmt(&var_stmt).is_ok());
         assert_eq!(
-            interpreter.environment.borrow().get(&token).unwrap(),
+            interpreter.environment.borrow().borrow().get(&token).unwrap(),
             Object::Nil
         )
     }
