@@ -28,10 +28,11 @@ pub fn gerenate_ast(output_dir: &str) -> io::Result<()> {
         "Stmt",
         &["error", "token", "expr"],
         &[
+            "If         : condition Expr, then_branch Box<Stmt>, else_branch Option<Box<Stmt>>",
             "Block      : statements Vec<Stmt>",
-            "Expression: expression Expr",
-            "Print     : expression Expr",
-            "Var      : name Token, initializer Option<Expr>",
+            "Expression : expression Expr",
+            "Print      : expression Expr",
+            "Var        : name Token, initializer Option<Expr>",
         ],
     )?;
 

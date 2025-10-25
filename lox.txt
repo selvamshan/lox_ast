@@ -1,23 +1,27 @@
-var a = "global a";
-var b = "global b";
-var c = "global c";
+if (4 == 5) 
 {
-  var a = "outer a";
-  var b = "outer b";
-  {
-    var a = "inner a";
-    print " in inner scope";
-    print a;
-    print b;
-    print c;
-  }
-  print " in outer scope";
-  print a;
-  print b;
-  print c;
+    print "yes";
 }
- print " in global scope";
-print a;
-print b;
-print c;
+else 
+{
+    print "No";
+}
+
+if (5 == 5) 
+{
+    print "yes";
+}
+else 
+{
+    print "No";
+}
+
+if (true) 
+{
+    print "T";
+}
+else 
+{
+    print "F";
+}
 

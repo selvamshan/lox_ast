@@ -88,6 +88,10 @@ impl<'a> Parser<'a> {
     }
 
     fn statement(&mut self) -> Result<Stmt, LoxError> {
+        if self.is_match(&[TokenType::If]) {
+            return self.if_statement();
+        }
+
         if self.is_match(&[TokenType::Print]) {
             return self.print_statement();
         }
@@ -96,7 +100,23 @@ impl<'a> Parser<'a> {
            return Ok(Stmt::Block(BlockStmt { statements: self.block()? })) ;
         }
 
-        self.expresion_statement()
+        self.expression_statement()
+    }
+
+    fn if_statement(&mut self) -> Result<Stmt, LoxError> {
+        //self.consume(TokenType::LeftParen, "Expect '(' after if .")?;
+        let condition = self.expression()?;
+        //self.consume(TokenType::RightParen, "Expect ')' after if conditon. ")?;
+        let then_branch = Box::new(self.statement()?);
+
+        let else_branch = if self.is_match(&[TokenType::Else]) {
+            Some(Box::new(self.statement()?))
+        } else {
+            None
+        };
+
+        Ok(Stmt::If(IfStmt{condition, then_branch, else_branch}))       
+
     }
 
     fn print_statement(&mut self) -> Result<Stmt, LoxError> {
@@ -122,7 +142,7 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn expresion_statement(&mut self) -> Result<Stmt, LoxError> {
+    fn expression_statement(&mut self) -> Result<Stmt, LoxError> {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expect ';' after value")?;
         Ok(Stmt::Expression(ExpressionStmt { expression: expr }))
