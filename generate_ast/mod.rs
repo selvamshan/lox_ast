@@ -15,9 +15,10 @@ pub fn gerenate_ast(output_dir: &str) -> io::Result<()> {
         &["error", "token", "object"],
         &[
             "Assign      : name Token, value Box<Expr>",
-            "Literal     : value Option<Object>",
+            "Literal     : value Option<Object>",            
             "Grouping    : expression Box<Expr>",
             "Unary       : operator Token, right Box<Expr>",
+            "Logical     : left Box<Expr>, operator Token, right Box<Expr>",
             "Binary      : left Box<Expr>, operator Token, right Box<Expr>",
             "Variable    : name Token",
         ],

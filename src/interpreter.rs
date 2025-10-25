@@ -105,7 +105,7 @@ impl StmtVisitor<()> for Interpreter {
     }
 }
 
-impl ExprVisitor<Object> for Interpreter {
+impl ExprVisitor<Object> for Interpreter {    
     fn visit_literal_expr(&mut self, expr: &LiteralExpr) -> Result<Object, LoxError> {
         match &expr.value {
             Some(val) => Ok(val.clone()),
@@ -133,6 +133,19 @@ impl ExprVisitor<Object> for Interpreter {
 
             _ => Err(LoxError::error(expr.operator.line, "Unreachable code.")),
         }
+    }
+
+    fn visit_logical_expr(&mut self, expr: &LogicalExpr) -> Result<Object, LoxError> {
+        let left = self.evaluate(&expr.left)?;
+        if expr.operator.token_type() == TokenType::Or {
+            if self.is_truthy(&left) {
+                return Ok(left);
+            }
+        } else if !self.is_truthy(&left) {
+                return Ok(left);
+            
+        }
+        self.evaluate(&expr.right)        
     }
 
     fn visit_binary_expr(&mut self, expr: &BinaryExpr) -> Result<Object, LoxError> {

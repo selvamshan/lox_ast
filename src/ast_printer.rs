@@ -21,6 +21,9 @@ impl AstPrinter {
 }
 
 impl ExprVisitor<String> for AstPrinter {
+    fn visit_logical_expr(&mut self, expr: &LogicalExpr) -> Result<String, LoxError> {
+         Ok("nil".to_string())
+    }
     fn visit_literal_expr(&mut self, expr: &LiteralExpr) -> Result<String, LoxError> {
         if let Some(value) = &expr.value {
             Ok(value.to_string())
