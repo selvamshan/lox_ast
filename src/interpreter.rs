@@ -126,6 +126,22 @@ impl StmtVisitor<()> for Interpreter {
 }
 
 impl ExprVisitor<Object> for Interpreter {    
+    fn visit_call_expr(&mut self, expr: &CallExpr) -> Result<Object, LoxResult> {
+        let callee = self.evaluate(&expr.callee)?;
+        let mut arguments = Vec::new();
+        for argument in &expr.arguments{
+            arguments.push(self.evaluate(argument)?);
+        }
+
+        if let Object::Func(function) = callee {
+            function.call(self, arguments)
+        } else {
+            Err(LoxResult::runtime_error(
+                &expr.paren, "Can only call functions and classes"))
+        }
+        
+    }
+
     fn visit_literal_expr(&mut self, expr: &LiteralExpr) -> Result<Object, LoxResult> {
         match &expr.value {
             Some(val) => Ok(val.clone()),

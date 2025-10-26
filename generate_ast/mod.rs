@@ -12,10 +12,11 @@ pub fn gerenate_ast(output_dir: &str) -> io::Result<()> {
     define_ast(
         output_dir,
         "Expr",
-        &["error", "token", "object"],
+        &["error", "token", "object", "rc"],
         &[
             "Assign      : name Token, value Box<Expr>",
             "Binary      : left Box<Expr>, operator Token, right Box<Expr>",
+            "Call        : callee Rc<Expr>, paren Token, arguments Vec<Expr>",
             "Grouping    : expression Box<Expr>",
             "Literal     : value Option<Object>",  
             "Logical     : left Box<Expr>, operator Token, right Box<Expr>",
@@ -52,8 +53,14 @@ fn define_ast(
     let mut file = File::create(path)?;
     let mut tree_type = Vec::new();
 
+    
+
     for i in imports {
-        writeln!(file, "use crate::{}::*;", i)?;
+        if i == &"rc" {
+            writeln!(file, "use std::rc::Rc;")?;
+        } else {
+            writeln!(file, "use crate::{}::*;", i)?;
+        }        
     }
     writeln!(file)?;
 

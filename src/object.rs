@@ -8,6 +8,7 @@ pub enum Object {
     Num(f64),
     Str(String),
     Bool(bool),
+    Func(Callable),
     Nil,
     ArithmeticError,
 }
@@ -19,10 +20,12 @@ impl fmt::Display for Object {
             Object::Str(s) => write!(f, "{}", s),
             Object::Nil => write!(f, "nil"),
             Object::Bool(b) => write!(f, "{}", b),
+            Object::Func(_) => write!(f, "{}", "func"),
             Object::ArithmeticError => panic!("Should not print ArithmeticError"),
         }
     }
 }
+
 
 impl Object {
     pub fn is_truthy(&self) -> bool {
@@ -120,6 +123,18 @@ impl PartialEq<String> for Object {
             Object::Str(s) => s == other,
             _ => false,
         }
+    }
+}
+
+// ---------------
+use crate::interpreter::*;
+use crate::error::*;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Callable;
+impl Callable {
+    pub fn call(&self, _terp: &Interpreter, _arguments: Vec<Object>) -> Result<Object, LoxResult> {
+        Ok(Object::Nil)
     }
 }
 
