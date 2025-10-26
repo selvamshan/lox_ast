@@ -11,7 +11,7 @@ pub enum TokenType {
     Dot,
     Minus,
     Plus,
-    Semicolon,
+    SemiColon,
     Slash,
     Star,
     // One or two character tokens.
@@ -60,7 +60,7 @@ impl fmt::Display for TokenType {
             TokenType::Dot => write!(f, "."),
             TokenType::Minus => write!(f, "-"),
             TokenType::Plus => write!(f, "+"),
-            TokenType::Semicolon => write!(f, ";"),
+            TokenType::SemiColon => write!(f, ";"),
             TokenType::Slash => write!(f, "/"),
             TokenType::Star => write!(f, "*"),
 

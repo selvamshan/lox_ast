@@ -106,7 +106,7 @@ impl Scanner {
         self.source.chars().nth(self.current + 1).unwrap()
     }
 
-    fn number(&mut self) -> Result<(), LoxError> {
+    fn number(&mut self) {
         while self.is_digit(self.peek()) {
             self.advance();
         }
@@ -122,24 +122,12 @@ impl Scanner {
         }
 
         let value = &self.source[self.start..self.current];
-
-        if let Ok(number_value) = value.parse::<f64>() {
-            self.add_token(TokenType::Number, Some(Object::Num(number_value)));
-            Ok(())
-        } else {
-            Err(LoxError::error(self.line, "Invalid number."))
-        }
-        //let number_value: f64 = value.parse().unwrap();
-
-        //self.add_token(TokenType::Number, Some(Object::Num(number_value)));
+        let number_value = value.parse::<f64>().unwrap();
+        self.add_token(TokenType::Number, Some(Object::Num(number_value)));      
     }
 
-    fn is_alpha(&self, c: char) -> bool {
-        // (c >= 'a' && c <= 'z') ||
-        // (c >= 'A' && c <= 'Z') ||
-        // c == '_'
-        //('A'..='Z').contains(&c) || ('a'..='z').contains(&c) || c == '_'
-        c.is_ascii_uppercase() || c.is_ascii_lowercase() || c == '_'
+    fn is_alpha(&self, c: char) -> bool {       
+        c.is_ascii_uppercase() || c.is_ascii_lowercase() 
     }
 
     fn is_alpha_numeric(&self, c: char) -> bool {
@@ -218,85 +206,31 @@ impl Scanner {
         // Placeholder for scanning a single token
         let c = self.advance();
         match c {
-            '(' => {
-                self.add_token(TokenType::LeftParen, None);
-                Ok(())
-            }
-            ')' => {
-                self.add_token(TokenType::RightParen, None);
-                Ok(())
-            },
-            '{' =>  {
-                self.add_token(TokenType::LeftBrace, None);
-                Ok(())
-            },
-            '}' => {
-                self.add_token(TokenType::RightBrace, None);
-                Ok(())
-            },
-            ',' => {
-                self.add_token(TokenType::Comma, None);
-                Ok(())
-            },
-            '.' => {
-                self.add_token(TokenType::Dot, None);
-                Ok(())
-            },
-            '-' => {
-                self.add_token(TokenType::Minus, None);
-                Ok(())
-            },
-            '+' => {
-                self.add_token(TokenType::Plus, None);
-                Ok(())
-            },
-            ';' => {
-                self.add_token(TokenType::Semicolon, None);
-                Ok(())
-            },
-            '*' => {
-                self.add_token(TokenType::Star, None);
-                Ok(())
-            },
+            '(' => self.add_token(TokenType::LeftParen, None),
+            ')' => self.add_token(TokenType::RightParen, None),
+            '{' => self.add_token(TokenType::LeftBrace, None),
+            '}' => self.add_token(TokenType::RightBrace, None),
+            ',' => self.add_token(TokenType::Comma, None),
+            '.' => self.add_token(TokenType::Dot, None),
+            '-' => self.add_token(TokenType::Minus, None),
+            '+' => self.add_token(TokenType::Plus, None),
+            ';' => self.add_token(TokenType::SemiColon, None),
+            '*' => self.add_token(TokenType::Star, None),
             '!' => match self.is_match('=') {
-                true => {
-                    self.add_token(TokenType::BangEqual, None);
-                    Ok(())
-                },
-                false => {
-                    self.add_token(TokenType::Bang, None);
-                    Ok(())
-                },
+                true => self.add_token(TokenType::BangEqual, None),              
+                false => self.add_token(TokenType::Bang, None),               
             },
             '=' => match self.is_match('=') {
-                true => {
-                    self.add_token(TokenType::Equal, None);
-                    Ok(())
-                },
-                false => {
-                    self.add_token(TokenType::Assign, None);
-                    Ok(())
-                },
+                true => self.add_token(TokenType::Equal, None),               
+                false =>  self.add_token(TokenType::Assign, None),                  
             },
             '>' => match self.is_match('=') {
-                true => {
-                    self.add_token(TokenType::GreaterEqual, None);
-                    Ok(())
-                },
-                false => {
-                    self.add_token(TokenType::Greater, None);
-                    Ok(())
-                },
+                true => self.add_token(TokenType::GreaterEqual, None),                
+                false => self.add_token(TokenType::Greater, None),  
             },
             '<' => match self.is_match('=') {
-                true => {
-                    self.add_token(TokenType::LessEqual, None);
-                    Ok(())
-                },
-                false => {
-                    self.add_token(TokenType::Less, None);
-                    Ok(())
-                },
+                true => self.add_token(TokenType::LessEqual, None),
+                false => self.add_token(TokenType::Less, None),            
             },
             '/' => {
                 if self.is_match('/') {
@@ -310,45 +244,28 @@ impl Scanner {
                 } else {
                     self.add_token(TokenType::Slash, None);
                 }
-                Ok(())
+                
             }
 
-            ' ' | '\r' | '\t' => {
-                // Ignore whitespace.
-                Ok(())
-            }
+            ' ' | '\r' | '\t' => {}
             '\n' => {
-                self.line += 1;
-                Ok(())
+                self.line += 1;                
             }
             '"' => {
                 // String literal scanning would go here
-                match self.scan_string() {
-                    Ok(_) => Ok(()),
-                    Err(e) => Err(e),
-                }
+                self.scan_string()?;                 
             }
-            '0'..='9' => {
-                //Number literal scanning would go here
-                // if self.is_digit(c) {
-                //   self.number()?;
-                // } else {
-                //     return Err(LoxError::error(self.line, "Invalid number.".to_string()));
-                // }
-                //  Ok(())
-                match self.number() {
-                    Ok(_) => Ok(()),
-                    Err(e) => Err(e),
-                }
+            '0'..='9' => {             
+                self.number();
+            }
+            _ if self.is_alpha(c) || c == '_' => {
+                self.identifier();
             }
             _ => {
-                if self.is_alpha(c) {
-                    self.identifier();
-                    return Ok(());
-                }
-                Err(LoxError::error(self.line, "Unexpected character."))
+                LoxError::error(self.line, "Unexpected character.");
             }
-        }
+        };
+        Ok(())
     }
 
     fn add_token(&mut self, ttype: TokenType, literal: Option<Object>) {
