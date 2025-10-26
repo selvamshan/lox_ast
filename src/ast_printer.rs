@@ -21,7 +21,7 @@ impl AstPrinter {
 }
 
 impl ExprVisitor<String> for AstPrinter {
-    fn visit_call_expr(&mut self, expr: &CallExpr) -> Result<String, LoxResult> {
+    fn visit_call_expr(&mut self, _expr: &CallExpr) -> Result<String, LoxResult> {
        Ok("nil".to_string())
     }
     fn visit_logical_expr(&mut self, _expr: &LogicalExpr) -> Result<String, LoxResult> {

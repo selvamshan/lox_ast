@@ -5,20 +5,30 @@ use crate::object::*;
 use crate::stmt::*;
 use crate::token::Token;
 use crate::token_type::*;
+use crate::native_functions::*;
 
 use std::f64::consts::E;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::result;
+use crate::callable::*;
 
 pub struct Interpreter {
+    globals: Rc<RefCell<Environment>>,
     environment: RefCell<Rc<RefCell<Environment>>>,
 }
 
+
 impl Interpreter {
     pub fn new() -> Self {
+        let globals = Rc::new(RefCell::new(Environment::new()));
+        globals.borrow_mut().define(&"clock".to_string(), Object::Func(Callable{
+            func: Rc::new(Nativeclock{}),
+            arity: 0,
+        }));
         Self {
-            environment: RefCell::new(Rc::new(RefCell::new(Environment::new()))),
+            globals: Rc::clone(&globals),
+            environment: RefCell::new(Rc::clone(&globals)),
         }
     }
 
@@ -134,7 +144,13 @@ impl ExprVisitor<Object> for Interpreter {
         }
 
         if let Object::Func(function) = callee {
-            function.call(self, arguments)
+            if arguments.len() != function.func.arity() {
+                return Err(LoxResult::runtime_error(
+                    &expr.paren, 
+                    &format!("Expected {} arguments but got {}", 
+                function.func.arity(), arguments.len())));
+            }
+            function.func.call(self, arguments)
         } else {
             Err(LoxResult::runtime_error(
                 &expr.paren, "Can only call functions and classes"))

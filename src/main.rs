@@ -16,6 +16,8 @@ mod stmt;
 use interpreter::*;
 mod ast_printer;
 mod environment;
+mod callable;
+mod native_functions;
 use ast_printer::AstPrinter;
 
 use std::env::args;
