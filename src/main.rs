@@ -85,7 +85,7 @@ impl Lux {
         }
     }
 
-    pub fn run(&mut self, source: &str) -> Result<(), LoxError> {
+    pub fn run(&mut self, source: &str) -> Result<(), LoxResult> {
         let mut scanner = Scanner::new(source);
         let tokens = scanner.scan_tokens()?;
         let mut parser = Parser::new(tokens);

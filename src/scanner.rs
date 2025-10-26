@@ -1,5 +1,5 @@
 use crate::object::Object;
-use crate::{error::LoxError, token::*, token_type::TokenType};
+use crate::{error::LoxResult, token::*, token_type::TokenType};
 use std::f32::consts;
 
 pub struct Scanner {
@@ -21,8 +21,8 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>, LoxError> {
-        let mut has_error: Option<LoxError> = None;
+    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>, LoxResult> {
+        let mut has_error: Option<LoxResult> = None;
 
         while !self.is_at_end() {
             self.start = self.current;
@@ -70,7 +70,7 @@ impl Scanner {
         self.source.chars().nth(self.current).unwrap()
     }
 
-    fn scan_string(&mut self) -> Result<(), LoxError> {
+    fn scan_string(&mut self) -> Result<(), LoxResult> {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
                 self.line += 1;
@@ -80,7 +80,7 @@ impl Scanner {
 
         if self.is_at_end() {
             // Handle unterminated string error
-            return Err(LoxError::error(self.line, "Unterminated string."));
+            return Err(LoxResult::error(self.line, "Unterminated string."));
         }
 
         // The closing ".
@@ -152,6 +152,7 @@ impl Scanner {
             "true" => Some(TokenType::True),
             "var" => Some(TokenType::Var),
             "while" => Some(TokenType::While),
+            "break" => Some(TokenType::Break),
             _ => None,
         }
     }
@@ -166,7 +167,7 @@ impl Scanner {
             self.add_token(TokenType::Identifier, None);
         }
     }
-    fn scan_comment(&mut self) -> Result<(), LoxError> {
+    fn scan_comment(&mut self) -> Result<(), LoxResult> {
         loop {
             match self.peek() {
                 '*' => {
@@ -193,7 +194,7 @@ impl Scanner {
                     self.advance();
                 }
                 '\0' => {
-                    return Err(LoxError::error(self.line, "Unterminated comment"));
+                    return Err(LoxResult::error(self.line, "Unterminated comment"));
                 } // End of source
                 _ => {
                     self.advance();
@@ -202,7 +203,7 @@ impl Scanner {
         }
     }
 
-    fn scan_token(&mut self) -> Result<(), LoxError> {
+    fn scan_token(&mut self) -> Result<(), LoxResult> {
         // Placeholder for scanning a single token
         let c = self.advance();
         match c {
@@ -262,7 +263,7 @@ impl Scanner {
                 self.identifier();
             }
             _ => {
-                LoxError::error(self.line, "Unexpected character.");
+                LoxResult::error(self.line, "Unexpected character.");
             }
         };
         Ok(())

@@ -1,4 +1,5 @@
 use core::fmt;
+use std::fmt::write;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenType {
@@ -29,6 +30,7 @@ pub enum TokenType {
     Number,
 
     // Keywords.
+    Break,
     And,
     Class,
     Else,
@@ -96,6 +98,7 @@ impl fmt::Display for TokenType {
             TokenType::True => write!(f, "true"),
             TokenType::Var => write!(f, "var"),
             TokenType::While => write!(f, "while"),
+            TokenType::Break => write!(f, "break"),
             TokenType::Eof => write!(f, "EOF"),
         }
     }
