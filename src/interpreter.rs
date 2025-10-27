@@ -7,12 +7,14 @@ use crate::stmt::*;
 use crate::token::Token;
 use crate::token_type::*;
 use crate::native_functions::*;
+use crate::callable::*;
 
-use std::f64::consts::E;
+
 use std::rc::Rc;
+use std::ops::Deref;
 use std::cell::RefCell;
 use std::result;
-use crate::callable::*;
+
 
 pub struct Interpreter {
     pub globals: Rc<RefCell<Environment>>,
@@ -80,7 +82,10 @@ impl StmtVisitor<()> for Interpreter {
         }
     }
     fn visit_function_stmt(&mut self, stmt: &FunctionStmt) -> Result<(), LoxResult> {
-        let function = LoxFunction::new(&Rc::new(stmt));
+        let function = LoxFunction::new(
+            &Rc::new(stmt), 
+            &self.environment.borrow().deref()
+        );
         self.environment
             .borrow()
             .borrow_mut()

@@ -1,6 +1,7 @@
 
 use std::fmt::Display;
 use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::environment::*;
 use crate::object::*;
@@ -14,15 +15,17 @@ pub struct LoxFunction {
     name: Token,
     params: Rc<Vec<Token>>,
     body: Rc<Vec<Stmt>>,
+    closure: Rc<RefCell<Environment>>
 }
 
 impl LoxFunction {
-    pub fn new(declaration: &FunctionStmt) -> Self {
+    pub fn new(declaration: &FunctionStmt, closure:&Rc<RefCell<Environment>>) -> Self {
 
         Self { 
             name: declaration.name.dup(),
             params: Rc::clone(&declaration.params),
-            body : Rc::clone(&declaration.body)
+            body : Rc::clone(&declaration.body),
+            closure: Rc::clone(closure)
          }
     }
 }
@@ -30,7 +33,7 @@ impl LoxFunction {
 impl LoxCallable for LoxFunction {
     fn call(&self, interpreter:&mut Interpreter, arguments: Vec<Object>) -> Result<Object, LoxResult> {
        
-        let mut e = Environment::new_with_enclosing(Rc::clone(&interpreter.globals));
+        let mut e = Environment::new_with_enclosing(Rc::clone(&self.closure));
 
         for (param, arg) in self.params.iter().zip(arguments.iter()) {
             

@@ -86,7 +86,7 @@ impl LoxResult {
                 eprintln!("System Error: {message}");
             },
             LoxResult::Break => {},
-            LoxResult::RetrunValue { value } => {}
+            LoxResult::RetrunValue { value:_ } => {}
             
 
         };
