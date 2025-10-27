@@ -113,6 +113,9 @@ impl<'a> Parser<'a> {
         if self.is_match(&[TokenType::Print]) {
             return self.print_statement();
         }
+        if self.is_match(&[TokenType::Return]) {
+            return self.return_statment();
+        }
 
         if self.is_match(&[TokenType::While]) {
             return self.while_statement();
@@ -199,6 +202,17 @@ impl<'a> Parser<'a> {
         Ok(Stmt::Print(PrintStmt { expression: value }))
     }
 
+    fn return_statment(&mut self)  -> Result<Stmt, LoxResult> {
+        let keyword = self.previous().clone();
+        let value = if self.check(&TokenType::SemiColon) {
+            None
+        } else {
+            Some(self.expression()?)
+        };
+        self.consume(TokenType::SemiColon, "Expect ';' after return value")?;
+        Ok(Stmt::Return(ReturnStmt { keyword, value }))
+    }
+
     fn while_statement(&mut self) -> Result<Stmt, LoxResult> {
         //self.consume(TokenType::LeftParen, "Excpect '(' after while ")?;
         let condition = self.expression()?;
@@ -257,7 +271,7 @@ impl<'a> Parser<'a> {
         self.consume(TokenType::RightParen, &format!("Expect ')' parameters"))?;
         self.consume(TokenType::LeftBrace, &format!("Expect '{{' before {kind} body"))?;
         let body = self.block()?;
-        Ok(Stmt::Function(FunctionStmt { name, params, body }))
+        Ok(Stmt::Function(FunctionStmt { name, params:Rc::new(params), body: Rc::new(body) }))
 
     }
 

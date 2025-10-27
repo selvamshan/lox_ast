@@ -1,6 +1,7 @@
 use crate::environment::*;
 use crate::error::*;
 use crate::expr::*;
+use crate::lox_function::*;
 use crate::object::*;
 use crate::stmt::*;
 use crate::token::Token;
@@ -14,7 +15,7 @@ use std::result;
 use crate::callable::*;
 
 pub struct Interpreter {
-    globals: Rc<RefCell<Environment>>,
+    pub globals: Rc<RefCell<Environment>>,
     environment: RefCell<Rc<RefCell<Environment>>>,
 }
 
@@ -40,7 +41,7 @@ impl Interpreter {
         stmt.accept(self)
     }
 
-    fn exceute_block(&mut self, statements: &[Stmt], environment: Environment) 
+    pub fn exceute_block(&mut self, statements: &[Stmt], environment: Environment) 
     -> Result<(), LoxResult> {
         let previous = self.environment
         .replace(Rc::new(RefCell::new(environment)));
@@ -71,7 +72,20 @@ impl Interpreter {
 }
 
 impl StmtVisitor<()> for Interpreter {
-    fn visit_function_stmt(&mut self, _stmt: &FunctionStmt) -> Result<(), LoxResult> {
+    fn visit_return_stmt(&mut self, stmt: &ReturnStmt) -> Result<(), LoxResult> {
+        if let Some(value) = &stmt.value {
+            Err(LoxResult::return_value(self.evaluate(value)?))
+        } else{
+            Err(LoxResult::return_value(Object::Nil))
+        }
+    }
+    fn visit_function_stmt(&mut self, stmt: &FunctionStmt) -> Result<(), LoxResult> {
+        let function = LoxFunction::new(&Rc::new(stmt));
+        self.environment
+            .borrow()
+            .borrow_mut()
+            .define(&stmt.name.as_string(), 
+            Object::Func(Callable { func: Rc::new(function), arity: stmt.params.len() }));
         Ok(())
     }
     fn visit_break_stmt(&mut self, _: &BreakStmt) -> Result<(), LoxResult> {

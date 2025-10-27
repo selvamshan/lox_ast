@@ -18,6 +18,7 @@ mod ast_printer;
 mod environment;
 mod callable;
 mod native_functions;
+mod lox_function;
 use ast_printer::AstPrinter;
 
 use std::env::args;
