@@ -71,6 +71,9 @@ impl Interpreter {
 }
 
 impl StmtVisitor<()> for Interpreter {
+    fn visit_function_stmt(&mut self, _stmt: &FunctionStmt) -> Result<(), LoxResult> {
+        Ok(())
+    }
     fn visit_break_stmt(&mut self, _: &BreakStmt) -> Result<(), LoxResult> {
         Err(LoxResult::Break)
     }

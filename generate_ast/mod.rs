@@ -33,6 +33,7 @@ pub fn gerenate_ast(output_dir: &str) -> io::Result<()> {
             "Block      : statements Vec<Stmt>",
             "Break      : token Token",
             "Expression : expression Expr",
+            "Function   : name Token, params Vec<Token>, body Vec<Stmt>",
             "If         : condition Expr, then_branch Box<Stmt>, else_branch Option<Box<Stmt>>",
             "Print      : expression Expr",
             "Var        : name Token, initializer Option<Expr>",

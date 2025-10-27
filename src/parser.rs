@@ -80,7 +80,9 @@ impl<'a> Parser<'a> {
     }
 
     fn declaration(&mut self) -> Result<Stmt, LoxResult> {
-        let result = if self.is_match(&[TokenType::Var]) {
+        let result = if  self.is_match(&[TokenType::Fun]) {
+            self.function("function")
+        } else if self.is_match(&[TokenType::Var]) {
             self.var_declaration()
         } else {
             self.statement()
@@ -227,6 +229,36 @@ impl<'a> Parser<'a> {
         let expr = self.expression()?;
         self.consume(TokenType::SemiColon, "Expect ';' after value")?;
         Ok(Stmt::Expression(ExpressionStmt { expression: expr }))
+    }
+
+    fn function(&mut self, kind:&str) -> Result<Stmt, LoxResult>{
+        let name = self.consume(
+            TokenType::Identifier, &format!("Expect {kind} name"))?;
+        self.consume(TokenType::LeftParen, &format!("Expect '(' after {kind} name"))?;
+
+        let mut params = Vec::new();
+        if !self.check(&TokenType::RightParen) {
+            params.push(self.consume(
+                TokenType::Identifier, "Except parameter name")?);
+            while self.is_match(&[TokenType::Comma]) {
+                if params.len() >= 255 {
+                    if !self.had_error {
+                        let peek = self.peek().dup();
+                        self.error(
+                            &peek, "Can't have more than 255 parameters");
+                        self.had_error = true;
+                    }
+                } else {
+                    params.push(self.consume(
+                TokenType::Identifier, "Except parameter name")?);
+                }
+            }
+        }
+        self.consume(TokenType::RightParen, &format!("Expect ')' parameters"))?;
+        self.consume(TokenType::LeftBrace, &format!("Expect '{{' before {kind} body"))?;
+        let body = self.block()?;
+        Ok(Stmt::Function(FunctionStmt { name, params, body }))
+
     }
 
     fn block(&mut self) -> Result<Vec<Stmt>, LoxResult> {
