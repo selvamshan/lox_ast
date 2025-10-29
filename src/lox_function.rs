@@ -14,7 +14,7 @@ use crate::stmt::*;
 pub struct LoxFunction {
     name: Token,
     params: Rc<Vec<Token>>,
-    body: Rc<Vec<Stmt>>,
+    body: Rc<Vec<Rc<Stmt>>>,
     closure: Rc<RefCell<Environment>>
 }
 
@@ -31,7 +31,7 @@ impl LoxFunction {
 }
 
 impl LoxCallable for LoxFunction {
-    fn call(&self, interpreter:&mut Interpreter, arguments: Vec<Object>) -> Result<Object, LoxResult> {
+    fn call(&self, interpreter:&Interpreter, arguments: Vec<Object>) -> Result<Object, LoxResult> {
        
         let mut e = Environment::new_with_enclosing(Rc::clone(&self.closure));
 

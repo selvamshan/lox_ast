@@ -14,13 +14,13 @@ pub fn gerenate_ast(output_dir: &str) -> io::Result<()> {
         "Expr",
         &["error", "token", "object", "rc"],
         &[
-            "Assign      : name Token, value Box<Expr>",
-            "Binary      : left Box<Expr>, operator Token, right Box<Expr>",
-            "Call        : callee Rc<Expr>, paren Token, arguments Vec<Expr>",
-            "Grouping    : expression Box<Expr>",
+            "Assign      : name Token, value Rc<Expr>",
+            "Binary      : left Rc<Expr>, operator Token, right Rc<Expr>",
+            "Call        : callee Rc<Expr>, paren Token, arguments Vec<Rc<Expr>>",
+            "Grouping    : expression Rc<Expr>",
             "Literal     : value Option<Object>",  
-            "Logical     : left Box<Expr>, operator Token, right Box<Expr>",
-            "Unary       : operator Token, right Box<Expr>",          
+            "Logical     : left Rc<Expr>, operator Token, right Rc<Expr>",
+            "Unary       : operator Token, right Rc<Expr>",          
             "Variable    : name Token",
         ],
     )?;
@@ -30,15 +30,15 @@ pub fn gerenate_ast(output_dir: &str) -> io::Result<()> {
         "Stmt",
         &["error", "token", "expr", "rc"],
         &[            
-            "Block      : statements Vec<Stmt>",
+            "Block      : statements Rc<Vec<Rc<Stmt>>>",
             "Break      : token Token",
-            "Expression : expression Expr",
-            "Function   : name Token, params Rc<Vec<Token>>, body Rc<Vec<Stmt>>",
-            "If         : condition Expr, then_branch Box<Stmt>, else_branch Option<Box<Stmt>>",
-            "Print      : expression Expr",
-            "Return     : keyword Token, value Option<Expr>",
-            "Var        : name Token, initializer Option<Expr>",
-            "While      : condition Expr, body Box<Stmt>"
+            "Expression : expression Rc<Expr>",
+            "Function   : name Token, params Rc<Vec<Token>>, body Rc<Vec<Rc<Stmt>>>",
+            "If         : condition Rc<Expr>, then_branch Rc<Stmt>, else_branch Option<Rc<Stmt>>",
+            "Print      : expression Rc<Expr>",
+            "Return     : keyword Token, value Option<Rc<Expr>>",
+            "Var        : name Token, initializer Option<Rc<Expr>>",
+            "While      : condition Rc<Expr>, body Rc<Stmt>"
         ],
     )?;
 
@@ -89,22 +89,28 @@ fn define_ast(
     //println!("tree_type: {:?}", tree_type);
     writeln!(file, "pub enum {} {{", base_name)?;
     for ttype in &tree_type {
-        writeln!(file, "    {}({}),", ttype.base_class_name, ttype.class_name)?;
+        writeln!(file, "    {}(Rc<{}>),", ttype.base_class_name, ttype.class_name)?;
     }
     writeln!(file, "}}\n")?;
 
     writeln!(file, "impl {} {{", base_name)?;
     writeln!(
         file,
-        "    pub fn accept<T>(&self, visitor: &mut dyn {}Visitor<T>) -> Result<T, LoxResult> {{",
+        "    pub fn accept<T>(&self, wrapper:Rc<{}>, {}_visitor:  &dyn {}Visitor<T>) -> Result<T, LoxResult> {{",
+        base_name,
+        base_name.to_lowercase(),
         base_name
     )?;
     writeln!(file, "        match self {{")?;
     for ttype in &tree_type {
         writeln!(
-            file,
-            "            {}::{}(v) => v.accept(visitor),",
-            base_name, ttype.base_class_name
+            file,  
+            "            {}::{}(v) => {}_visitor.visit_{}_{}(wrapper, &v),",
+            base_name, 
+            ttype.base_class_name,
+            base_name.to_lowercase(),
+            ttype.base_class_name.to_lowercase(),
+            base_name.to_lowercase()
         )?;
     }
     writeln!(file, "        }}")?;
@@ -124,20 +130,21 @@ fn define_ast(
     for ttype in &tree_type {
         writeln!(
             file,
-            "    fn visit_{}_{}(&mut self, {}: &{}) -> Result<T, LoxResult>;",
+            "    fn visit_{0}_{1}(&self, wrapper: Rc<{2}>, {3}: &{4}) -> Result<T, LoxResult>;",
             ttype.base_class_name.to_lowercase(),
             base_name.to_lowercase(),
+            base_name,
             base_name.to_lowercase(),
             ttype.class_name
         )?;
     }
     write!(file, "}}\n\n")?;
-
+    /*
     for ttype in &tree_type {
         writeln!(file, "impl {} {{", ttype.class_name)?;
         writeln!(
             file,
-            "    pub fn accept<T>(&self, visitor: &mut dyn {}Visitor<T>) -> Result<T, LoxResult> {{",
+            "    pub fn accept<T>(&mut self, visitor: &dyn {}Visitor<T>) -> Result<T, LoxResult> {{",
             base_name
         )?;
         writeln!(
@@ -149,5 +156,6 @@ fn define_ast(
         writeln!(file, "    }}")?;
         writeln!(file, "}}\n")?;
     }
+     */
     Ok(())
 }

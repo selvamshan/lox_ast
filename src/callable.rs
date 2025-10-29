@@ -41,7 +41,7 @@ impl Debug for Callable {
 }
 
 pub trait LoxCallable {
-    fn call(&self, interpreter:&mut Interpreter, arguments: Vec<Object>) -> Result<Object, LoxResult>;
+    fn call(&self, interpreter:& Interpreter, arguments: Vec<Object>) -> Result<Object, LoxResult>;
     fn arity(&self) -> usize;
 }
 
@@ -49,7 +49,7 @@ pub trait LoxCallable {
    
 
 impl LoxCallable for Callable {
-    fn call(&self, interpreter: &mut Interpreter, arguments: Vec<Object>) -> Result<Object, LoxResult> {
+    fn call(&self, interpreter: & Interpreter, arguments: Vec<Object>) -> Result<Object, LoxResult> {
         self.func.call(interpreter, arguments)
     }
 

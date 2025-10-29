@@ -1,3 +1,4 @@
+//https://github.com/UncleScientist/lox-ast
 #![allow(dead_code, unused_imports)]
 mod error;
 use error::*;
@@ -14,14 +15,16 @@ mod expr;
 mod interpreter;
 mod stmt;
 use interpreter::*;
-mod ast_printer;
+//mod ast_printer;
 mod environment;
 mod callable;
 mod native_functions;
 mod lox_function;
-use ast_printer::AstPrinter;
+//mod resolver;
+//use ast_printer::AstPrinter;
 
 use std::env::args;
+use std::rc::Rc;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write, stdout};
 
@@ -92,7 +95,7 @@ impl Lux {
         let mut scanner = Scanner::new(source);
         let tokens = scanner.scan_tokens()?;
         let mut parser = Parser::new(tokens);
-        let statements = parser.parse()?;
+        let statements = Rc::new(parser.parse()?);
         if parser.success() {
              self.interpreter.interpret(&statements);
             
