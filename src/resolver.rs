@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::ops::Deref;
 
 use crate::token::*;
 use crate::interpreter::*;
@@ -8,32 +9,34 @@ use crate::error::*;
 use crate::stmt::*;
 use crate::expr::*; 
 
-pub struct Resolver {
-    interpreter: Interpreter,
-    scopes: RefCell<Vec<RefCell<HashMap<String, bool>>>>
+pub struct Resolver<'a> {
+    interpreter: &'a Interpreter,
+    scopes: RefCell<Vec<RefCell<HashMap<String, bool>>>>,
+    had_error : RefCell<bool>
 }
 
-impl Resolver {
-    pub fn new(interpreter:Interpreter) -> Self {
+impl<'a> Resolver<'a> {
+    pub fn new(interpreter:&'a Interpreter) -> Self {
         Self {
             interpreter,
-            scopes: RefCell::new(Vec::new())
+            scopes: RefCell::new(Vec::new()),
+            had_error: RefCell::new(false)
         }
     }
 
-    fn resolve(&self, statments:&[Stmt]) -> Result<(), LoxResult>  {
-        for statement in statments{
-            self.resolve_stmt(statement);
+    pub fn resolve(&self, statments:&Rc<Vec<Rc<Stmt>>>) -> Result<(), LoxResult>  {
+        for statement in statments.deref(){
+            self.resolve_stmt(statement.clone())?;
         }
         Ok(())
     }
 
     fn resolve_stmt(&self, stmt: Rc<Stmt>) ->  Result<(), LoxResult>  {
-        stmt.accept( self)
+        stmt.accept(stmt.clone(), self)
     }
 
      fn resolve_expr(&self, expr: Rc<Expr>) ->  Result<(), LoxResult>  {
-        expr.accept( self)
+        expr.accept( expr.clone(), self)
     }
 
     fn begin_scope(&self) {
@@ -45,14 +48,13 @@ impl Resolver {
     }
 
     fn declare(&self, name:&Token)  {
-        if !self.scopes.borrow().is_empty() {
-            self.scopes
-            .borrow()
-            .last()
-            .unwrap()
-            .borrow_mut()
-            .insert(name.as_string(), false);
-        }        
+        if let Some(scope) = self.scopes.borrow().last() {
+            if scope.borrow().contains_key(&name.as_string()){
+                self.error(name, "Already a varialble with this name in this scope");
+            }
+            scope.borrow_mut().insert(name.as_string(), false);
+        }         
+           
     }
 
     fn define(&self, name:&Token) {
@@ -76,14 +78,37 @@ impl Resolver {
         }
     }
 
+    fn resolve_function(&self,  function:&FunctionStmt) -> Result<(), LoxResult>{
+        self.begin_scope();
+        for param in function.params.iter(){
+            self.declare(param);
+            self.define(param);
+        }
+        self.resolve(&function.body)?;
+        self.end_scope();
+        Ok(())
+
+    }
+
+    fn error(&self, token:&Token, message:&str) {
+        self.had_error.replace(true);
+        LoxResult::parse_error(token, message);
+    }
+
 } 
 
-impl StmtVisitor<()> for Resolver{
-    fn visit_return_stmt(&self, _:Rc<Stmt>, _stmt: &ReturnStmt) -> Result<(), LoxResult> {
+impl<'a> StmtVisitor<()> for Resolver<'a>{
+    fn visit_return_stmt(&self, _:Rc<Stmt>, stmt: &ReturnStmt) -> Result<(), LoxResult> {
+        if let Some(value) = &stmt.value{
+            self.resolve_expr(value.clone())?;
+        }
         Ok(())
     }
 
-    fn visit_function_stmt(&self, _:Rc<Stmt>, _stmt: &FunctionStmt) -> Result<(), LoxResult> {
+    fn visit_function_stmt(&self, _:Rc<Stmt>, stmt: &FunctionStmt) -> Result<(), LoxResult> {
+        self.declare(&stmt.name);
+        self.define(&stmt.name);
+        self.resolve_function(stmt)?;
         Ok(())
     }
 
@@ -91,13 +116,19 @@ impl StmtVisitor<()> for Resolver{
         Ok(())
     }
 
-    fn visit_while_stmt(&self, _:Rc<Stmt>, _stmt:&WhileStmt) -> Result<(), LoxResult> {
-        
+    fn visit_while_stmt(&self, _:Rc<Stmt>, stmt:&WhileStmt) -> Result<(), LoxResult> {
+        self.resolve_expr(stmt.condition.clone())?;
+        self.resolve_stmt(stmt.body.clone())?;
         Ok(())
     }
     
 
-    fn visit_if_stmt(&self, _:Rc<Stmt>, _stmt: &IfStmt) -> Result<(), LoxResult> {
+    fn visit_if_stmt(&self, _:Rc<Stmt>, stmt: &IfStmt) -> Result<(), LoxResult> {
+        self.resolve_expr(stmt.condition.clone())?;
+        self.resolve_stmt(stmt.then_branch.clone())?;
+        if let Some(else_branch) = &stmt.else_branch{
+            self.resolve_stmt(else_branch.clone())?;
+        }
         Ok(())
     }
 
@@ -108,18 +139,20 @@ impl StmtVisitor<()> for Resolver{
         Ok(())
     }
 
-    fn visit_expression_stmt(&self, _:Rc<Stmt>, _stmt: &ExpressionStmt) -> Result<(), LoxResult> {
-        Ok(())
+    fn visit_expression_stmt(&self, _:Rc<Stmt>, stmt: &ExpressionStmt) -> Result<(), LoxResult> {
+        self.resolve_expr(stmt.expression.clone())
+       // Ok(())
     }
 
-    fn visit_print_stmt(&self, _:Rc<Stmt>, _stmt: &PrintStmt) -> Result<(), LoxResult> {
-        Ok(())
+    fn visit_print_stmt(&self, _:Rc<Stmt>, stmt: &PrintStmt) -> Result<(), LoxResult> {
+        self.resolve_expr(stmt.expression.clone())
+        //Ok(())
     }
 
     fn visit_var_stmt(&self, _:Rc<Stmt>, stmt: &VarStmt) -> Result<(), LoxResult> {
         self.declare(&stmt.name);
         if let Some(init) = &stmt.initializer {
-            self.resolve_expr(&init)?;
+            self.resolve_expr(init.clone())?;
         }
 
         self.define(&stmt.name);
@@ -128,8 +161,12 @@ impl StmtVisitor<()> for Resolver{
     
 }
 
-impl ExprVisitor<()> for Resolver{
-     fn visit_call_expr(&self, _:Rc<Expr>, _expr: &CallExpr) -> Result<(), LoxResult> {
+impl<'a> ExprVisitor<()> for Resolver<'a>{
+     fn visit_call_expr(&self, _:Rc<Expr>, expr: &CallExpr) -> Result<(), LoxResult> {
+        self.resolve_expr(expr.callee.clone())?;
+        for arguments in &expr.arguments {
+            self.resolve_expr(arguments.clone())?;
+        }
          Ok(())
      }
 
@@ -137,35 +174,41 @@ impl ExprVisitor<()> for Resolver{
           Ok(())
      }
 
-     fn visit_assign_expr(&self, _:Rc<Expr>, _expr: &AssignExpr) -> Result<(), LoxResult> {
+     fn visit_assign_expr(&self, wrapper:Rc<Expr>, expr: &AssignExpr) -> Result<(), LoxResult> {
+         self.resolve_expr(expr.value.clone())?;
+         self.resolve_local(wrapper, &expr.name);
          Ok(())
      }
 
      fn visit_variable_expr(&self, wrapper:Rc<Expr>, expr: &VariableExpr) -> Result<(), LoxResult> {
         if !self.scopes.borrow().is_empty() &&
-            !self.scopes.borrow().last().unwrap().borrow().get(&expr.name.as_string()).unwrap() {
-                Err(LoxResult::runtime_error(
-                    &expr.name, "Can't load local variable in its own initizlier"))
+            self.scopes.borrow().last().unwrap().borrow().get(&expr.name.as_string()) == Some(&false) {
+                self.error(
+                    &expr.name, "Can't load local variable in its own initizlier");
             } else {
-                self.resolve_local(&wrapper, &expr.name);
-                 Ok(())
+                self.resolve_local(wrapper, &expr.name);
+               
             }
-         
+           Ok(())
      }
 
-     fn visit_grouping_expr(&self, _:Rc<Expr>, _expr: &GroupingExpr) -> Result<(), LoxResult> {
-          Ok(())
+     fn visit_grouping_expr(&self, _:Rc<Expr>, expr: &GroupingExpr) -> Result<(), LoxResult> {
+        self.resolve_expr(expr.expression.clone())
+        //Ok(())
      }
 
     fn visit_literal_expr(&self, _:Rc<Expr>, _expr: &LiteralExpr) -> Result<(), LoxResult> {
         Ok(())
     }
 
-    fn visit_unary_expr(&self, _:Rc<Expr>, _expr: &UnaryExpr) -> Result<(), LoxResult> {
-        Ok(())
+    fn visit_unary_expr(&self, _:Rc<Expr>, expr: &UnaryExpr) -> Result<(), LoxResult> {
+        self.resolve_expr(expr.right.clone())
+        //Ok(())
     }
 
-    fn visit_binary_expr(&self, _:Rc<Expr>, _expr: &BinaryExpr) -> Result<(), LoxResult> {
+    fn visit_binary_expr(&self, _:Rc<Expr>, expr: &BinaryExpr) -> Result<(), LoxResult> {
+        self.resolve_expr(expr.left.clone())?;
+        self.resolve_expr(expr.right.clone())?;
         Ok(())
     }
 

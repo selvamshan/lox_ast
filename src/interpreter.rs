@@ -20,7 +20,7 @@ use std::result;
 pub struct Interpreter {
     pub globals: Rc<RefCell<Environment>>,
     environment: RefCell<Rc<RefCell<Environment>>>,
-    locals: RefCell<HashMap<Expr, usize>>
+    locals: RefCell<HashMap<Rc<Expr>, usize>>
 }
 
 
@@ -67,7 +67,7 @@ impl Interpreter {
     pub fn interpret(&mut self, statements: &[Rc<Stmt>]) -> bool {
         let mut had_error = true;
         for statement in statements {
-            if let Err(_e) = self.execute((statement.clone())) {
+            if let Err(_e) = self.execute(statement.clone()) {
                 had_error = false;
                 break;
             }
@@ -75,8 +75,17 @@ impl Interpreter {
         had_error
     }
 
-    pub fn resolve(&self, expr:&Expr, depth: usize) {
-        //self.locals.borrow_mut().insert(expr, depth)
+    pub fn resolve(&self, expr:Rc<Expr>, depth: usize) {
+        self.locals.borrow_mut().insert(expr, depth);
+    }
+
+    fn look_up_variable(&self, name:&Token, expr:Rc<Expr>) -> Result<Object, LoxResult> {
+        if let Some(distance) = self.locals.borrow().get(&expr) {
+            self.environment.borrow().borrow().get_at(distance.clone(), &name.as_string())
+        } else {
+            self.globals.borrow().get(name)
+        }
+        
     }
 }
 
@@ -300,16 +309,21 @@ impl ExprVisitor<Object> for Interpreter {
         }
     }
 
-    fn visit_variable_expr(&self, _:Rc<Expr>, expr: &VariableExpr) -> Result<Object, LoxResult> {
-        self.environment.borrow().borrow().get(&expr.name)
+    fn visit_variable_expr(&self, wrapper:Rc<Expr>, expr: &VariableExpr) -> Result<Object, LoxResult> {
+        //self.environment.borrow().borrow().get(&expr.name)
+        return self.look_up_variable(&expr.name, wrapper)
     }
 
-    fn visit_assign_expr(&self,  _:Rc<Expr>, expr: &AssignExpr) -> Result<Object, LoxResult> {
+    fn visit_assign_expr(&self,  wrapper:Rc<Expr>, expr: &AssignExpr) -> Result<Object, LoxResult> {
         let value = self.evaluate(expr.value.clone())?;
+        if let Some(distance) = self.locals.borrow().get(&wrapper) {   
         self.environment
             .borrow()
-            .borrow_mut()
-            .assign(&expr.name, value.clone())?;
+            .borrow_mut()            
+            .assign_at(*distance, &expr.name, value.clone())?;
+        } else{
+            self.globals.borrow_mut().assign(&expr.name, value.clone())?;
+        }
         Ok(value)
     }
 }

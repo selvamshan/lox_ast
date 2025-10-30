@@ -20,13 +20,16 @@ mod environment;
 mod callable;
 mod native_functions;
 mod lox_function;
-//mod resolver;
+mod resolver;
+use resolver::*;
 //use ast_printer::AstPrinter;
 
 use std::env::args;
 use std::rc::Rc;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write, stdout};
+
+
 
 fn main() {
     let args: Vec<String> = args().collect();
@@ -97,6 +100,9 @@ impl Lux {
         let mut parser = Parser::new(tokens);
         let statements = Rc::new(parser.parse()?);
         if parser.success() {
+            let resolver = Resolver::new(&self.interpreter);
+            resolver.resolve(&statements)?;
+
              self.interpreter.interpret(&statements);
             
         } 
