@@ -102,8 +102,9 @@ impl Lux {
         if parser.success() {
             let resolver = Resolver::new(&self.interpreter);
             resolver.resolve(&statements)?;
-
-             self.interpreter.interpret(&statements);
+            if resolver.success() {
+                self.interpreter.interpret(&statements);
+            }
             
         } 
         Ok(())
