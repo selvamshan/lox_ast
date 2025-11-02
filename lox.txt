@@ -142,7 +142,7 @@ class Bacon {
 
 Bacon().eat(); // Prints "Crunch crunch crunch!".
 
-/*
+
 class Person {
   sayName() {
     print this.name;
@@ -155,4 +155,4 @@ jane.name = "Jane";
 var method = jane.sayName;
 method(); // ?
 
-*/
+

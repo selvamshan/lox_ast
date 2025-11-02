@@ -23,11 +23,15 @@ impl LoxInstance {
         }
     }
 
-    pub fn get(&self, name:&Token) -> Result<Object, LoxResult> {
+    pub fn get(&self, name:&Token, this:&Rc<LoxInstance>) -> Result<Object, LoxResult> {
         if let Entry::Occupied(o) = self.fields.borrow_mut().entry(name.as_string()) {
             Ok(o.get().clone())
-        } else if let Some(method) = self.klass.find_method(&name.as_string()) {
-            Ok(method)
+        } else if let Some(method) = self.klass.find_method(&name.as_string()) {          
+            if let Object::Func(func) = method {
+                Ok(func.bind(&Object::Instance(Rc::clone(this))))
+            } else {
+                panic!("tried to bind 'this' to a non-function {method:?}");
+            }
         } else{
             Err(LoxResult::runtime_error(
                 name, 
@@ -38,6 +42,8 @@ impl LoxInstance {
     pub fn set(&self, name:&Token, object: Object)   {
         self.fields.borrow_mut().insert(name.as_string(), object);
     }
+
+    
 }
 
 

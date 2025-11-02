@@ -4,6 +4,7 @@ use std::fmt::Display;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+use crate::environment;
 use crate::environment::*;
 use crate::lox_class::LoxClass;
 use crate::object::*;
@@ -29,6 +30,18 @@ impl LoxFunction {
             body : Rc::clone(&declaration.body),
             closure: Rc::clone(closure)
          }
+    }
+
+    pub fn bind(&self, instance: &Object) -> Object {
+        let environment = RefCell::new(
+            Environment::new_with_enclosing(Rc::clone(&self.closure)));
+        environment.borrow_mut().define(&"this".to_string(), instance.clone());
+        Object::Func(Rc::new(Self {
+             name: self.name.dup(), 
+             params: Rc::clone(&self.params), 
+             body: Rc::clone(&self.body), 
+             closure: Rc::new(environment)
+            }))
     }
 }
 

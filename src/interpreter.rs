@@ -205,6 +205,10 @@ impl StmtVisitor<()> for Interpreter {
 
 impl ExprVisitor<Object> for Interpreter {    
 
+    fn visit_this_expr(&self, wrapper: Rc<Expr>, expr: &ThisExpr) -> Result<Object, LoxResult> {
+        Ok(self.look_up_variable(&expr.keyword, wrapper)?)
+    }
+
     fn visit_set_expr(&self, _wrapper: Rc<Expr>, expr: &SetExpr) -> Result<Object, LoxResult> {
         let object = self.evaluate(expr.object.clone())?;
         if let Object::Instance(inst) = object {
@@ -221,7 +225,7 @@ impl ExprVisitor<Object> for Interpreter {
     fn visit_get_expr(&self, _wrapper: Rc<Expr>, expr: &GetExpr) -> Result<Object, LoxResult> {
         let object = self.evaluate(expr.object.clone())?;
         if let Object::Instance(inst) = object {
-            Ok(inst.get(&expr.name)?)
+            Ok(inst.get(&expr.name, &inst)?)
         } else {
             Err(LoxResult::runtime_error(&expr.name, "Only instance have properties."))
         }

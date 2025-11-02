@@ -22,6 +22,7 @@ pub fn gerenate_ast(output_dir: &str) -> io::Result<()> {
             "Literal     : value Option<Object>",  
             "Logical     : left Rc<Expr>, operator Token, right Rc<Expr>",
             "Set         : object Rc<Expr>, name Token, value Rc<Expr>",
+            "This        : keyword Token",
             "Unary       : operator Token, right Rc<Expr>",          
             "Variable    : name Token",
         ],

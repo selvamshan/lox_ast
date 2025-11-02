@@ -115,6 +115,8 @@ impl<'a> StmtVisitor<()> for Resolver<'a>{
     fn visit_class_stmt(&self, _wrapper: Rc<Stmt>, stmt: &ClassStmt) -> Result<(), LoxResult> {
         self.declare(&stmt.name);
         self.define(&stmt.name);
+        self.begin_scope();
+        self.scopes.borrow().last().unwrap().borrow_mut().insert("this".to_string(), true);
         for method in stmt.methods.deref() {
             let declaration = FunctionType::METHOD;
             if let Stmt::Function(method) = method.deref() {
@@ -126,6 +128,7 @@ impl<'a> StmtVisitor<()> for Resolver<'a>{
                 ));
             }
         }
+        self.end_scope();
         Ok(())
     }
 
@@ -201,6 +204,11 @@ impl<'a> StmtVisitor<()> for Resolver<'a>{
 }
 
 impl<'a> ExprVisitor<()> for Resolver<'a>{
+
+    fn visit_this_expr(&self, wrapper: Rc<Expr>, expr: &ThisExpr) -> Result<(), LoxResult> {
+        self.resolve_local(wrapper, &expr.keyword);
+        Ok(())
+    }
 
     fn visit_set_expr(&self, _: Rc<Expr>, expr: &SetExpr) -> Result<(), LoxResult> {
         self.resolve_expr(expr.value.clone())?;
