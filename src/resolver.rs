@@ -21,7 +21,8 @@ pub struct Resolver<'a> {
 #[derive(PartialEq)]
 enum FunctionType{
     None,
-    Function
+    Function,
+    METHOD
 }
 
 impl<'a> Resolver<'a> {
@@ -114,6 +115,17 @@ impl<'a> StmtVisitor<()> for Resolver<'a>{
     fn visit_class_stmt(&self, _wrapper: Rc<Stmt>, stmt: &ClassStmt) -> Result<(), LoxResult> {
         self.declare(&stmt.name);
         self.define(&stmt.name);
+        for method in stmt.methods.deref() {
+            let declaration = FunctionType::METHOD;
+            if let Stmt::Function(method) = method.deref() {
+                self.resolve_function(method, declaration)?;
+            } else {
+                return Err(LoxResult::runtime_error(
+                    &stmt.name,
+                    "Class method did not resolve into function statement"
+                ));
+            }
+        }
         Ok(())
     }
 

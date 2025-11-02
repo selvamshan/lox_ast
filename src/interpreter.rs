@@ -99,8 +99,24 @@ impl Interpreter {
 
 impl StmtVisitor<()> for Interpreter {
     fn visit_class_stmt(&self, _wrapper: Rc<Stmt>, stmt: &ClassStmt) -> Result<(), LoxResult> {
-        self.environment.borrow().borrow_mut().define(&stmt.name.as_string(), Object::Nil);
-        let klass = Object::Class(Rc::new(LoxClass::new(&stmt.name.as_string())));
+        self.environment
+        .borrow()
+        .borrow_mut()
+        .define(&stmt.name.as_string(), Object::Nil);
+        
+        let mut methods = HashMap::new();
+        for method in stmt.methods.deref(){            
+            if let Stmt::Function(func) = method.deref() {
+               let function = Object::Func(Rc::new(LoxFunction::new(
+                func, &self.environment.borrow())));
+                methods.insert(func.deref().name.as_string(), function);
+            } else {
+                panic!("non-functin method in class")
+            }            
+
+        }
+
+        let klass = Object::Class(Rc::new(LoxClass::new(&stmt.name.as_string(), methods)));
         self.environment.borrow().borrow_mut().assign(&stmt.name, klass)?;
         Ok(())
     }
