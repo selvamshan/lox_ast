@@ -80,7 +80,9 @@ impl<'a> Parser<'a> {
     }
 
     fn declaration(&mut self) -> Result<Rc<Stmt>, LoxResult> {
-        let result = if  self.is_match(&[TokenType::Fun]) {
+        let result =if  self.is_match(&[TokenType::Class]) {
+            self.class_delaration()
+        } else if  self.is_match(&[TokenType::Fun]) {
             self.function("function")
         } else if self.is_match(&[TokenType::Var]) {
             self.var_declaration()
@@ -92,6 +94,19 @@ impl<'a> Parser<'a> {
             self.synchronize();
         }
         result
+    }
+
+    fn class_delaration(&mut self) -> Result<Rc<Stmt>, LoxResult>{
+        let name = self.consume(TokenType::Identifier, "Expect class name")?;
+        self.consume(TokenType::LeftBrace, "Expect '{' before calss body")?;
+        let mut methods = Vec::new();
+        while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
+            methods.push(self.function("method")?);
+        }
+
+        self.consume(TokenType::RightBrace, "Expect '}' after class body")?;
+
+        Ok(Rc::new(Stmt::Class(Rc::new(ClassStmt { name, methods: Rc::new(methods)}))))
     }
 
     fn statement(&mut self) -> Result<Rc<Stmt>, LoxResult> {
@@ -306,6 +321,12 @@ impl<'a> Parser<'a> {
                     name: expr.name.dup(),
                     value: Rc::new(value),
                 })));
+            } else if let Expr::Get(get)  = expr {
+               return Ok(Expr::Set(Rc::new(SetExpr { 
+                    object: Rc::clone(&get.object),
+                     name: get.name.dup(), 
+                     value: Rc::new(value)
+                })));
             }
             self.error(&equals, "Invalid assignment target ");
         }
@@ -441,7 +462,12 @@ impl<'a> Parser<'a> {
         let mut expr = self.primary()?;
         loop {
             if self.is_match(&[TokenType::LeftParen]) {
-                expr = self.finish_call(&Rc::new(expr))?;                
+                expr = self.finish_call(&Rc::new(expr))?;   
+            } else if self.is_match(&[TokenType::Dot]) {
+                let name = self.consume(
+                    TokenType::Identifier, "Expected property naem after '.' ")?;
+                    expr = Expr::Get(Rc::new(GetExpr { object: Rc::new(expr), name }))
+
             } else{
                 break;
             }

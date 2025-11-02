@@ -1,9 +1,11 @@
 
+use core::fmt;
 use std::fmt::Display;
 use std::rc::Rc;
 use std::cell::RefCell;
 
 use crate::environment::*;
+use crate::lox_class::LoxClass;
 use crate::object::*;
 use crate::token::*;
 use crate::callable::*;
@@ -12,7 +14,7 @@ use crate::error::*;
 use crate::stmt::*;
 
 pub struct LoxFunction {
-    name: Token,
+    name: Token,    
     params: Rc<Vec<Token>>,
     body: Rc<Vec<Rc<Stmt>>>,
     closure: Rc<RefCell<Environment>>
@@ -30,8 +32,39 @@ impl LoxFunction {
     }
 }
 
+impl fmt::Debug for LoxFunction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self}")
+    }
+}
+
+impl Clone for LoxFunction{
+    fn clone(&self) -> Self {
+        Self {
+            name: self.name.dup(),
+            params: Rc::clone(&self.params),
+            body: Rc::clone(&self.body),
+            closure: Rc::clone(&self.closure)
+        }
+    }
+}
+
+impl PartialEq for LoxFunction {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.token_type() == other.name.token_type()
+        && Rc::ptr_eq(&self.params, &other.params)
+        && Rc::ptr_eq(&self.body, &other.body)
+        && Rc::ptr_eq(&self.closure, &other.closure)
+    }
+}
+
 impl LoxCallable for LoxFunction {
-    fn call(&self, interpreter:&Interpreter, arguments: Vec<Object>) -> Result<Object, LoxResult> {
+    fn call(
+        &self, 
+        interpreter:&Interpreter, 
+        arguments: Vec<Object>,
+        _klass: Option<Rc<LoxClass>>
+    ) -> Result<Object, LoxResult> {
        
         let mut e = Environment::new_with_enclosing(Rc::clone(&self.closure));
 

@@ -110,6 +110,13 @@ impl<'a> Resolver<'a> {
 } 
 
 impl<'a> StmtVisitor<()> for Resolver<'a>{
+
+    fn visit_class_stmt(&self, _wrapper: Rc<Stmt>, stmt: &ClassStmt) -> Result<(), LoxResult> {
+        self.declare(&stmt.name);
+        self.define(&stmt.name);
+        Ok(())
+    }
+
     fn visit_return_stmt(&self, _:Rc<Stmt>, stmt: &ReturnStmt) -> Result<(), LoxResult> {
         if *self.current_function.borrow() == FunctionType::None{
             self.error(&stmt.keyword, "Can't return from top lever code");
@@ -182,6 +189,18 @@ impl<'a> StmtVisitor<()> for Resolver<'a>{
 }
 
 impl<'a> ExprVisitor<()> for Resolver<'a>{
+
+    fn visit_set_expr(&self, _: Rc<Expr>, expr: &SetExpr) -> Result<(), LoxResult> {
+        self.resolve_expr(expr.value.clone())?;
+        self.resolve_expr(expr.object.clone())?;        
+       Ok(())
+    }
+     
+     fn visit_get_expr(&self, _wrapper: Rc<Expr>, expr: &GetExpr) -> Result<(), LoxResult> {
+        self.resolve_expr(expr.object.clone())?;
+        Ok(())
+     }
+
      fn visit_call_expr(&self, _:Rc<Expr>, expr: &CallExpr) -> Result<(), LoxResult> {
         self.resolve_expr(expr.callee.clone())?;
         for arguments in &expr.arguments {

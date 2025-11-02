@@ -1,14 +1,23 @@
 use core::fmt;
+use std::fmt::write;
+use std::rc::Rc;
 use std::backtrace;
 use std::cmp::*;
-use crate::callable::*;
+//use crate::callable::*;
+use crate::lox_class::*;
+use crate::lox_function::LoxFunction;
+use crate::lox_instance::*;
+use crate::native_functions::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Object {
     Num(f64),
     Str(String),
     Bool(bool),
-    Func(Callable),
+    Func(Rc<LoxFunction>),
+    Class(Rc<LoxClass>),
+    Instance(Rc<LoxInstance>),
+    Native(Rc<LoxNative>),
     Nil,
     ArithmeticError,
 }
@@ -20,8 +29,11 @@ impl fmt::Display for Object {
             Object::Str(s) => write!(f, "{}", s),
             Object::Nil => write!(f, "nil"),
             Object::Bool(b) => write!(f, "{}", b),
-            Object::Func(_) => write!(f, "{}", "func"),
-            Object::ArithmeticError => panic!("Should not print ArithmeticError"),
+            Object::Func(func) => write!(f, "{}", func),
+            Object::Class(c)  => write!(f, "{}", c.to_string()),
+            Object::Instance(i) => write!(f, "{}", i.to_string()),
+            Object::Native(n) => write!(f, "{n}"),            
+            _ => panic!("Should not print ArithmeticError"),
         }
     }
 }

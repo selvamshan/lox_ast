@@ -20,6 +20,8 @@ mod environment;
 mod callable;
 mod native_functions;
 mod lox_function;
+mod lox_class;
+mod lox_instance;
 mod resolver;
 use resolver::*;
 //use ast_printer::AstPrinter;
@@ -95,6 +97,10 @@ impl Lux {
     }
 
     pub fn run(&mut self, source: &str) -> Result<(), LoxResult> {
+        if source == "@" {
+            self.interpreter.print_evnironment();
+            return Ok(());
+        }
         let mut scanner = Scanner::new(source);
         let tokens = scanner.scan_tokens()?;
         let mut parser = Parser::new(tokens);
