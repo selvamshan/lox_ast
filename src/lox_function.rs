@@ -16,16 +16,22 @@ use crate::stmt::*;
 
 pub struct LoxFunction {
     name: Token,    
+    is_initializer: bool,
     params: Rc<Vec<Token>>,
     body: Rc<Vec<Rc<Stmt>>>,
     closure: Rc<RefCell<Environment>>
 }
 
 impl LoxFunction {
-    pub fn new(declaration: &FunctionStmt, closure:&Rc<RefCell<Environment>>) -> Self {
+    pub fn new(
+        declaration: &FunctionStmt, 
+        closure:&Rc<RefCell<Environment>>,
+        is_initializer:bool
+    ) -> Self {
 
         Self { 
             name: declaration.name.dup(),
+            is_initializer,
             params: Rc::clone(&declaration.params),
             body : Rc::clone(&declaration.body),
             closure: Rc::clone(closure)
@@ -38,6 +44,7 @@ impl LoxFunction {
         environment.borrow_mut().define(&"this".to_string(), instance.clone());
         Object::Func(Rc::new(Self {
              name: self.name.dup(), 
+             is_initializer: self.is_initializer,
              params: Rc::clone(&self.params), 
              body: Rc::clone(&self.body), 
              closure: Rc::new(environment)
@@ -55,6 +62,7 @@ impl Clone for LoxFunction{
     fn clone(&self) -> Self {
         Self {
             name: self.name.dup(),
+            is_initializer: self.is_initializer,
             params: Rc::clone(&self.params),
             body: Rc::clone(&self.body),
             closure: Rc::clone(&self.closure)
@@ -87,12 +95,25 @@ impl LoxCallable for LoxFunction {
         }
         
         match interpreter.exceute_block(&self.body, e){
-            Err(LoxResult::RetrunValue{value}) => Ok(value),
+            Err(LoxResult::RetrunValue{value}) => {
+                if self.is_initializer{
+                    self.closure.borrow().get_at(0, "this")
+                } else{
+                    Ok(value)
+                }
+            },
             Err(e) => Err(e),
-            Ok(_) => Ok(Object::Nil)
+            Ok(_) => {
+                if self.is_initializer {
+                    self.closure.borrow().get_at(0, "this")
+                } else {
+                     Ok(Object::Nil)
+                }
+                
+            }               
 
         }
-        //Ok(Object::Nil)   
+   
       
     }
 

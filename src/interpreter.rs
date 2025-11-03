@@ -108,7 +108,9 @@ impl StmtVisitor<()> for Interpreter {
         for method in stmt.methods.deref(){            
             if let Stmt::Function(func) = method.deref() {
                let function = Object::Func(Rc::new(LoxFunction::new(
-                func, &self.environment.borrow())));
+                func, &self.environment.borrow(),
+                func.name.as_string()=="init"
+            )));
                 methods.insert(func.deref().name.as_string(), function);
             } else {
                 panic!("non-functin method in class")
@@ -131,7 +133,8 @@ impl StmtVisitor<()> for Interpreter {
     fn visit_function_stmt(&self, _:Rc<Stmt>, stmt: &FunctionStmt) -> Result<(), LoxResult> {
         let function = LoxFunction::new(
             &Rc::new(stmt), 
-            &self.environment.borrow().deref()
+            &self.environment.borrow().deref(),
+            false
         );
         self.environment
             .borrow()

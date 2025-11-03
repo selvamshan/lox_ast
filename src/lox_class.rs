@@ -1,9 +1,10 @@
+use core::arch;
 use std::collections::HashMap;
 use std::fmt::{Display, Debug, write,self};
 use std::fs::metadata;
 use std::rc::Rc;
 
-use crate::callable::*;
+use crate::{callable::*, interpreter};
 use crate::lox_function::*;
 use crate::object::*;
 use crate::error::*;
@@ -26,11 +27,17 @@ impl LoxClass {
     }
 
     pub fn instantiate(
-        self, 
-        _interpreter:&Interpreter, 
-        _arguments: Vec<Object>, 
-        klass: Option<Rc<LoxClass>>) -> Result<Object, LoxResult> {
-            Ok(Object::Instance(Rc::new(LoxInstance::new(klass.unwrap()))))
+        &self, 
+        interpreter:&Interpreter, 
+        arguments: Vec<Object>, 
+        klass: Rc<LoxClass>) -> Result<Object, LoxResult> {
+        let instance = Object::Instance(Rc::new(LoxInstance::new(klass)));
+        if let Some(Object::Func(initializer)) = self.find_method("init") {
+            if let Object::Func(init) = initializer.bind(&instance) {
+                init.call(interpreter, arguments, None)?;
+            };
+        }
+        Ok(instance)         
     }
 
     pub fn find_method(&self, name:&str) -> Option<Object> {
@@ -48,13 +55,17 @@ impl Display for LoxClass {
 
 impl LoxCallable for LoxClass {
     fn call(&self,
-         _interpreter:&Interpreter, 
-         _arguments: Vec<crate::object::Object>,
+         interpreter:&Interpreter, 
+         arguments: Vec<crate::object::Object>,
          klass: Option<Rc<LoxClass>>
         ) -> Result<Object, LoxResult> {
-        Ok(Object::Instance(Rc::new(LoxInstance::new(klass.unwrap()))))
+        self.instantiate(interpreter, arguments, klass.unwrap())
     }
     fn arity(&self) -> usize {
-        0
+        if let Some(Object::Func(initializer)) = self.find_method("init") {
+            initializer.arity()
+        } else  {
+            0
+        }
     }
 }

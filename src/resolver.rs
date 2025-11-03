@@ -14,6 +14,7 @@ pub struct Resolver<'a> {
     scopes: RefCell<Vec<RefCell<HashMap<String, bool>>>>,
     had_error : RefCell<bool>,
     current_function: RefCell<FunctionType>,
+    current_class : RefCell<ClassType>,
     in_while: RefCell<bool>
 }
 
@@ -22,7 +23,14 @@ pub struct Resolver<'a> {
 enum FunctionType{
     None,
     Function,
-    METHOD
+    Initializer,
+    Method,
+}
+
+#[derive(PartialEq)]
+enum ClassType {
+    None,
+    Class
 }
 
 impl<'a> Resolver<'a> {
@@ -32,6 +40,7 @@ impl<'a> Resolver<'a> {
             scopes: RefCell::new(Vec::new()),
             had_error: RefCell::new(false),
             current_function: RefCell::new(FunctionType::None),
+            current_class: RefCell::new(ClassType::None),
             in_while:RefCell::new(false),
         }
     }
@@ -113,13 +122,18 @@ impl<'a> Resolver<'a> {
 impl<'a> StmtVisitor<()> for Resolver<'a>{
 
     fn visit_class_stmt(&self, _wrapper: Rc<Stmt>, stmt: &ClassStmt) -> Result<(), LoxResult> {
+        let enclossing_class = self.current_class.replace(ClassType::Class);
         self.declare(&stmt.name);
         self.define(&stmt.name);
         self.begin_scope();
         self.scopes.borrow().last().unwrap().borrow_mut().insert("this".to_string(), true);
-        for method in stmt.methods.deref() {
-            let declaration = FunctionType::METHOD;
+        for method in stmt.methods.deref() {           
             if let Stmt::Function(method) = method.deref() {
+                let declaration = if &method.name.as_string() == "init" {
+                    FunctionType::Initializer
+                } else {
+                     FunctionType::Method
+                };
                 self.resolve_function(method, declaration)?;
             } else {
                 return Err(LoxResult::runtime_error(
@@ -129,12 +143,15 @@ impl<'a> StmtVisitor<()> for Resolver<'a>{
             }
         }
         self.end_scope();
+        self.current_class.replace(enclossing_class);
         Ok(())
     }
 
     fn visit_return_stmt(&self, _:Rc<Stmt>, stmt: &ReturnStmt) -> Result<(), LoxResult> {
         if *self.current_function.borrow() == FunctionType::None{
             self.error(&stmt.keyword, "Can't return from top lever code");
+        } else if  *self.current_function.borrow() == FunctionType::Initializer {
+            self.error(&stmt.keyword, "Can't return from an initializer");
         }
         if let Some(value) = &stmt.value{
             self.resolve_expr(value.clone())?;
@@ -206,6 +223,9 @@ impl<'a> StmtVisitor<()> for Resolver<'a>{
 impl<'a> ExprVisitor<()> for Resolver<'a>{
 
     fn visit_this_expr(&self, wrapper: Rc<Expr>, expr: &ThisExpr) -> Result<(), LoxResult> {
+        if *self.current_class.borrow() == ClassType::None {
+            self.error(&expr.keyword, "Can't use 'this' outside of class");
+        }
         self.resolve_local(wrapper, &expr.keyword);
         Ok(())
     }
