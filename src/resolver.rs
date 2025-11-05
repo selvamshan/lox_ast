@@ -30,7 +30,8 @@ enum FunctionType{
 #[derive(PartialEq)]
 enum ClassType {
     None,
-    Class
+    Class,
+    Subclass
 }
 
 impl<'a> Resolver<'a> {
@@ -125,6 +126,20 @@ impl<'a> StmtVisitor<()> for Resolver<'a>{
         let enclossing_class = self.current_class.replace(ClassType::Class);
         self.declare(&stmt.name);
         self.define(&stmt.name);
+
+        if let Some(supperclass) = &stmt.superclass {
+            self.current_class.replace(ClassType::Subclass);
+            if let Expr::Variable(v) = &supperclass.deref() {
+                if v.name.as_string() == stmt.name.as_string(){
+                    self.error(&v.name, "A class can't inherit form itself");
+                }
+                
+            }
+            self.resolve_expr(supperclass.clone())?;
+            self.begin_scope();
+            self.scopes.borrow().last().unwrap().borrow_mut().insert("super".to_string(), true);
+        }
+
         self.begin_scope();
         self.scopes.borrow().last().unwrap().borrow_mut().insert("this".to_string(), true);
         for method in stmt.methods.deref() {           
@@ -143,6 +158,9 @@ impl<'a> StmtVisitor<()> for Resolver<'a>{
             }
         }
         self.end_scope();
+        if stmt.superclass.is_some() {
+            self.end_scope();
+        }
         self.current_class.replace(enclossing_class);
         Ok(())
     }
@@ -221,6 +239,20 @@ impl<'a> StmtVisitor<()> for Resolver<'a>{
 }
 
 impl<'a> ExprVisitor<()> for Resolver<'a>{
+
+    fn visit_super_expr(&self, wrapper: Rc<Expr>, expr: &SuperExpr) -> Result<(), LoxResult> {
+        match *self.current_class.borrow() {
+            ClassType::None => self.error(
+                &expr.keyword, "Can't use 'super' outside of class"
+            ),
+            ClassType::Subclass => {},
+            _ => self.error(
+                &expr.keyword, "Can't use 'super' in as class with no superclass"
+            ),
+        }
+        self.resolve_local(wrapper, &expr.keyword);
+        Ok(())
+    }
 
     fn visit_this_expr(&self, wrapper: Rc<Expr>, expr: &ThisExpr) -> Result<(), LoxResult> {
         if *self.current_class.borrow() == ClassType::None {

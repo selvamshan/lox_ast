@@ -22,6 +22,7 @@ pub fn gerenate_ast(output_dir: &str) -> io::Result<()> {
             "Literal     : value Option<Object>",  
             "Logical     : left Rc<Expr>, operator Token, right Rc<Expr>",
             "Set         : object Rc<Expr>, name Token, value Rc<Expr>",
+            "Super       : keyword Token, method Token",
             "This        : keyword Token",
             "Unary       : operator Token, right Rc<Expr>",          
             "Variable    : name Token",
@@ -34,7 +35,7 @@ pub fn gerenate_ast(output_dir: &str) -> io::Result<()> {
         &["error", "token", "expr", "rc"],
         &[            
             "Block      : statements Rc<Vec<Rc<Stmt>>>",
-            "Class      : name Token, methods Rc<Vec<Rc<Stmt>>> ",
+            "Class      : name Token, superclass Option<Rc<Expr>>, methods Rc<Vec<Rc<Stmt>>> ",
             "Break      : token Token",
             "Expression : expression Rc<Expr>",
             "Function   : name Token, params Rc<Vec<Token>>, body Rc<Vec<Rc<Stmt>>>",

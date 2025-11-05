@@ -99,10 +99,32 @@ impl Interpreter {
 
 impl StmtVisitor<()> for Interpreter {
     fn visit_class_stmt(&self, _wrapper: Rc<Stmt>, stmt: &ClassStmt) -> Result<(), LoxResult> {
+         let superclass = if let Some(superclass_expr) = &stmt.superclass {
+            let superclass = self.evaluate(superclass_expr.clone())?;
+            if let Object::Class(c) = superclass {
+                Some(c)
+            } else if let Expr::Variable(v) = superclass_expr.deref() {
+                return Err(LoxResult::runtime_error(&v.name, "Super class must be a class"));
+            } else {
+                panic!("could not extract varible expr");
+            }
+         } else {
+            None
+         };
         self.environment
         .borrow()
         .borrow_mut()
         .define(&stmt.name.as_string(), Object::Nil);
+       
+        let enclosing = if let Some(ref s) = superclass {
+            let mut e = Environment::new_with_enclosing(
+                self.environment.borrow().clone());
+            e.define(&"super".to_string(), Object::Class(s.clone()));
+
+            Some(self.environment.replace(Rc::new(RefCell::new(e))))
+        } else {
+            None
+        };
         
         let mut methods = HashMap::new();
         for method in stmt.methods.deref(){            
@@ -118,7 +140,14 @@ impl StmtVisitor<()> for Interpreter {
 
         }
 
-        let klass = Object::Class(Rc::new(LoxClass::new(&stmt.name.as_string(), methods)));
+        let klass = Object::Class(Rc::new(LoxClass::new(
+            &stmt.name.as_string(), 
+            superclass,
+            methods
+        )));
+        if let Some(previous) = enclosing {
+            self.environment.replace(previous);
+        }
         self.environment.borrow().borrow_mut().assign(&stmt.name, klass)?;
         Ok(())
     }
@@ -206,7 +235,44 @@ impl StmtVisitor<()> for Interpreter {
     }
 }
 
-impl ExprVisitor<Object> for Interpreter {    
+impl ExprVisitor<Object> for Interpreter {  
+
+    fn visit_super_expr(&self, wrapper: Rc<Expr>, expr: &SuperExpr) -> Result<Object, LoxResult> {
+        let distance = *self.locals.borrow().get(&wrapper).unwrap();
+
+        let superclass = if let  Ok(Object::Class(superclass)) = self
+        .environment
+        .borrow()
+        .borrow()
+        .get_at(distance, "super")
+        {          
+            superclass
+        } else {
+                panic!("unable to extract superclass")
+        };
+      
+        let object = self.environment
+        .borrow()
+        .borrow()
+        .get_at(distance-1, "this")
+        .ok()
+        .unwrap();
+
+        if let Some(method) = superclass.find_method(&expr.method.as_string()){
+            if let Object::Func(func) = method {
+                Ok(func.bind(&object))
+            } else {
+                panic!("method was not a function")
+            }
+        } else {
+            Err(LoxResult::runtime_error(
+                &expr.method, 
+                &format!("undefined property '{}'", expr.method.as_string()
+            )))
+        }
+
+        
+    }  
 
     fn visit_this_expr(&self, wrapper: Rc<Expr>, expr: &ThisExpr) -> Result<Object, LoxResult> {
         Ok(self.look_up_variable(&expr.keyword, wrapper)?)
