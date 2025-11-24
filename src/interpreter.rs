@@ -68,15 +68,12 @@ impl Interpreter {
         !matches!(obj, Object::Nil | Object::Bool(false))
     }
 
-    pub fn interpret(&mut self, statements: &[Rc<Stmt>]) -> bool {
-        let mut had_error = true;
+    pub fn interpret(&mut self, statements: &[Rc<Stmt>]) -> Result<(), LoxResult> {
+        //let mut had_error = true;
         for statement in statements {
-            if let Err(_e) = self.execute(statement.clone()) {
-                had_error = false;
-                break;
-            }
+           self.execute(statement.clone())?;               
         }
-        had_error
+        Ok(())
     }
 
     pub fn resolve(&self, expr:Rc<Expr>, depth: usize) {
@@ -286,7 +283,7 @@ impl ExprVisitor<Object> for Interpreter {
             Ok(value)
         } else {
             Err(LoxResult::runtime_error(&expr.name, 
-                "Only instances have fields"))
+                "Only instances have fields."))
         }
        
     }
@@ -432,18 +429,28 @@ impl ExprVisitor<Object> for Interpreter {
                 TokenType::BangEqual => Object::Bool(true),
                 _ => Object::ArithmeticError,
             },
-            _ => {
-                return Err(LoxResult::runtime_error(
-                    &expr.operator,
-                    "Operands must be two numbers or two strings.",
-                ));
-            }
+            (_, Object::Nil) => match op {
+                TokenType::Equal => Object::Bool(false),
+                TokenType::BangEqual => Object::Bool(true),
+                _ => Object::ArithmeticError,
+            },
+            (Object::Bool(_), Object::Num(_)) => match op {
+                TokenType::Equal => Object::Bool(false),
+                TokenType::BangEqual => Object::Bool(true),
+                _ => Object::ArithmeticError,
+            },
+            (Object::Bool(_l), Object::Str(_r)) => match op {
+                TokenType::Equal => Object::Bool(false),
+                TokenType::BangEqual => Object::Bool(true),
+                _ => Object::ArithmeticError,
+            },
+            _ => Object::ArithmeticError,              
         };
 
         if result == Object::ArithmeticError {
             Err(LoxResult::runtime_error(
                 &expr.operator,
-                "Operands must be numbers.",
+                "Illegal operands for binary operator.",
             ))
         } else {
             Ok(result)

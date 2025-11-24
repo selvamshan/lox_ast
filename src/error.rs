@@ -9,7 +9,8 @@ pub enum LoxResult {
     Error {line:usize, message: String},
     SystemError {message:String},
     RetrunValue {value: Object},
-    Break
+    Break,
+    Fail
 }
 
 // #[derive(Debug)]
@@ -20,6 +21,10 @@ pub enum LoxResult {
 // }
 
 impl LoxResult {
+    pub fn fail() -> LoxResult {
+        LoxResult::Fail
+    }
+
     pub fn error(line: usize, message: &str) -> LoxResult {
         let err = LoxResult::Error {
              line, 
@@ -76,7 +81,7 @@ impl LoxResult {
                 if token.is(&TokenType::Eof) {
                     eprintln!("[line {}] Error at end: {}", token.line, message);
                 } else {
-                    eprintln!("Line {} at '{}' {}", token.line, token.as_string(), message,);
+                    eprintln!("{}\n[Line {}]", message,  token.line);
                 }
             }
             LoxResult::Error { line, message } => {
@@ -86,8 +91,8 @@ impl LoxResult {
                 eprintln!("System Error: {message}");
             },
             LoxResult::Break => {},
-            LoxResult::RetrunValue { value:_ } => {}
-            
+            LoxResult::RetrunValue { value:_ } => {},
+            LoxResult::Fail => { panic!("should not get here")}            
 
         };
     }

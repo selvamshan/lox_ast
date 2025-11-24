@@ -35,42 +35,41 @@ use std::io::{self, BufRead, BufReader, Read, Write, stdout};
 
 fn main() {
     let args: Vec<String> = args().collect();
-    let mut lux = Lux::new();
-    println!("args: {:?}, {}", args, args.len());
-    if args.len() > 2 {
-        println!("Usage: lox ast [Script]");
-        std::process::exit(64);
-    } else if args.len() == 2 {
-        let _ = lux.run_file(&args[1]);
-    } else {
-        lux.run_prompt()
+    let mut lox = Lox::new();
+    //println!("args: {:?}, {}", args, args.len());
+    match args.len() {
+        1 => lox.run_prompt(),
+        2 => lox.run_file(&args[1]).expect("could not find file"),
+        _ => {
+            println!("Usage: lox ast [Script]");
+            std::process::exit(64);
+        }            
+        
     }
+    
 }
 
-struct Lux {
+struct Lox {
     interpreter: Interpreter,
 }
 
-impl Lux {
+impl Lox {
     pub fn new() -> Self {
-        Lux {
+        Self {
             interpreter: Interpreter::new(),
         }
     }
 
     pub fn run_file(&mut self, path: &String) -> io::Result<()> {
         let buf = std::fs::read_to_string(path)?;
-        if self.run(buf.as_str()).is_err() {
-            std::process::exit(65);
+      
+        match self.run(buf.as_str()) {
+            Ok(_) => std::process::exit(0),
+            Err(LoxResult::RuntimeError {.. }) => std::process::exit(70),
+            _ => std::process::exit(65)
+            
         }
-        // match self.run(buf.as_str()) {
-        //     Ok(_) => (),
-        //     Err(_e) => {
-        //     //e.report("".to_string());
-        //     std::process::exit(65);
-        //     }
-
-        Ok(())
+       
     }
 
     pub fn run_prompt(&mut self) {
@@ -105,15 +104,14 @@ impl Lux {
         let tokens = scanner.scan_tokens()?;
         let mut parser = Parser::new(tokens);
         let statements = Rc::new(parser.parse()?);
-        if parser.success() {
-            let resolver = Resolver::new(&self.interpreter);
-            resolver.resolve(&statements)?;
-            if resolver.success() {
-                self.interpreter.interpret(&statements);
-            }
-            
-        } 
-        Ok(())
-        
+      
+        let resolver = Resolver::new(&self.interpreter);
+        resolver.resolve(&statements)?;
+        if resolver.success() {
+            self.interpreter.interpret(&statements)?;
+        }  else {
+        std::process::exit(65)
+        }        
+        Ok(())        
     }
 }

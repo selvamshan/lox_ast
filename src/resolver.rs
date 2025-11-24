@@ -295,7 +295,7 @@ impl<'a> ExprVisitor<()> for Resolver<'a>{
         if !self.scopes.borrow().is_empty() &&
             self.scopes.borrow().last().unwrap().borrow().get(&expr.name.as_string()) == Some(&false) {
                 self.error(
-                    &expr.name, "Can't load local variable in its own initizlier");
+                    &expr.name, "Can't load local variable in its own initiazlier");
             } else {
                 self.resolve_local(wrapper, &expr.name);
                

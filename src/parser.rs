@@ -28,12 +28,13 @@ impl<'a> Parser<'a> {
             statements.push(self.declaration()?)
         }
 
-        Ok(statements)
+        if self.had_error {
+            Err(LoxResult::fail())
+        } else {
+            Ok(statements)
+        }
     }
-
-    pub fn success(&self) -> bool {
-        !self.had_error
-    }
+   
 
     fn is_at_end(&self) -> bool {
         self.peek().is(&TokenType::Eof)
@@ -456,9 +457,9 @@ impl<'a> Parser<'a> {
                 if arguments.len() >= 255{
                     if !self.had_error{
                         let peek = self.peek().dup();
-                        LoxResult::runtime_error(
-                            &peek, "Can't have more than 255 arguments");
                         self.had_error = true;
+                        return Err(LoxResult::runtime_error(
+                            &peek, "Can't have more than 255 arguments"));                       
                     }
                 }  else {
                    arguments.push(Rc::new(self.expression()?));
@@ -542,7 +543,10 @@ impl<'a> Parser<'a> {
             })));
         }
         let peek = self.peek().dup();
-        Err(self.error(&peek, "Expected expression"))
+        self.synchronize();
+        self.error(&peek, "Expect expression");
+        Ok(Expr::Literal(Rc::new(LiteralExpr { value: Some(Object::Bool(false)) })))
+        
         //Err(LoxResult::error(self.peek().line, "Expected expression."))
     }
 
